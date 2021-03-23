@@ -1,2 +1,2 @@
-# MRBEARD
-Marginal Reconstruction with Bayesian Estimator And Rate Distribution
+# RasperGade
+Reconstructing Ancestral State under Pulsed Evolution in R by Gaussian Decomposition
