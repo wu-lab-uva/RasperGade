@@ -1,19 +1,30 @@
 # This script contains some useful function extensions for tree manipulation and analyses from the ape package.
-# By Yingnan Gao, 20210117;  Email: yg5ap@virginia.edu
+# By Yingnan Gao, 20210325;  Email: yg5ap@virginia.edu
 
 # load required library
 library(ape)
-#
+
+# function to get the immediate ancestor of a node/tip
+## phy is a phylo-class object
+## x is the index of the tip/node whose immediate ancestor's index will be returned
+## output value of this function is the index of the immediate ancestor
+## if the root is supplied as x, NA will be returned
+### note that this function is NOT vectorized
 getLatestAncestor = function (phy, x){
-  # x should be the index of the focal node, not the node/tip label
   if (x == Ntip(phy) + 1) return(NA)
   i <- which(phy$edge[, 2] == x)
   return(phy$edge[i, 1])
 }
-#
+
+# function to get the ancestor of a node/tip with a specified depth
+## phy is a phylo-class object
+## x is the index of the tip/node whose immediate ancestor's index will be returned
+## level is the depth between the ancestor and the focal node
+## trace determines if all indices along the path should be returned
+## output value of this function is a vector of the index/indices of the ancestor(s)
+### this function is NOT vectorized
+### this function should be compatible with other functions with the same name (e.g., Kemble et al 2012)
 getAncestor = function (phy, x,level=1,trace=FALSE){
-  # returning the ancestor of a specified degree, compatible with other functions with the same name
-  # e.g. Kemble's 2012 paper
   if(trace) all.anc = numeric(level)
   anc = x
   for(i in 1:level){
@@ -22,24 +33,39 @@ getAncestor = function (phy, x,level=1,trace=FALSE){
     if(is.na(anc)) break
   }
   if(trace){
-    return(all.anc[-which(all.anc==0)])
+    return(all.anc[which((all.anc!=0)&(!is.na(all.anc)))])
   }else{
     return(anc) 
-    }
+  }
 }
-#
+
+# function to get the root of a rooted phylogeny
+## phy is a phylo-class object
+## output value of this function is the index of the root
+### for unrooted tree, this function will also return an index, but it is not the true root of the tree
 getRoot = function(phy){
   return(Ntip(phy) + 1)
 }
-#
+
+# function to get the immediate descendants of a node/tip
+## phy is a phylo-class object
+## x is the index of the tip/node whose immediate descendants' indices will be returned
+## output value of this function is a vector of the indices of the immediate descendants
+## if a tip is supplied as x, NA will be returned
+### note that this function is NOT vectorized
 getNextDescendants = function (phy, x){
-  # x should be the index
-  if (x <= Ntip(phy)) 
+  if (x <= Ntip(phy))
     return(NA)
   i <- which(phy$edge[, 1] == x)
   return(phy$edge[i, 2])
 }
-#
+
+# function to get the sister node/tip of a node/tip
+## phy is a phylo-class object
+## x is the index of the tip/node whose sisters' indices will be returned
+## output value of this function is a vector of the indices of the sisters
+## if the root is supplied as x, NA will be returned
+### note that this function is NOT vectorized
 findSisters <- function(phy,x){
   # x should be the index
   parent = getLatestAncestor(phy,x)
