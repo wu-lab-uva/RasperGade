@@ -1,2 +1,48 @@
-# RasperGade
-Reconstructing Ancestral State under Pulsed Evolution in R by Gaussian Decomposition
+# RasperGade: Reconstructing Ancestral State under Pulsed Evolution in R by Gaussian Decomposition
+RasperGade is a set of R functions that predict ancestral and hidden states while accounting for pulsed evolution and time-independent variation.
+It has 3 major functions:
+1.fitting the pulsed evolution model given extant trait value and a phylogeny 
+2.reconstructing ancestral states or predicting hidden states
+3.evaluate the quality of predicted ancestral and hidden states
+
+Detailed algorithm and analyses are described in the preprint: ...
+
+## System requirements
+RasperGade are built on R 3.6.3. It requires the following R packages and their dependencies for fitting the pulsed evolution model and ancestral state reconstruction:
+ape
+bbmle
+pracma
+doParallel
+extraDistr
+
+The following R packages are required for plotting diagnostic graphs:
+ggplot2
+ggpubr
+
+No non-standard hardware is required to run RasperGade.
+
+## Installation
+The required packages can be installed from CRAN by running the following lines in R:
+  install.packages("ape")
+  install.packages("bbmle")
+  install.packages("pracma")
+  install.packages("doParallel")
+  install.packages("extraDistr")
+  install.packages("ggplot2")
+  install.packages("ggpubr")
+
+To use RasperGade, simply source each file under the directory R/ in the R session and the functions should be ready for use.
+
+## Data format
+RasperGade has two basic input data: the phylogeny and the extant trait values.
+RasperGade expects that phylogenies are phylo-class objects as defined by the R package `ape`.
+Extant trait values should be in a named numeric vector, and the names should correspond to tip labels of the phylogeny. Hidden states to be predicted are marked by NA values in the named vector.
+We expect that tips have unique labels, and if nodes have labels, they should be unique.
+
+## Example data
+
+## Fitting data
+
+## Simulating data
+
+## Reproduction of results in the preprint
