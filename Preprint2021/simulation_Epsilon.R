@@ -1,12 +1,15 @@
-source("RasperGade_reconstruction.R")
-source("fitPE_functions.R")
-# read in key arguments for the fitting
+source("../R/ape_addition.R")
+source("../R/PEpois.R")
+source("../R/RasperGade_reconstruction.R")
+source("../R/fitPE_functions.R")
+
+# read in key arguments for the simulation
 arg=commandArgs(TRUE)
 # interpret the arguments
-# the job to continue analyses on
+# the job name
 job.name = arg[1]
 if(is.na(job.name)) stop("Job name is required and cannot be omitted!")
-# read in phylogeny and trait from 1 RDS file
+# read in phylogeny
 data.file = sprintf("%s.tre",job.name)
 tree = read.tree(data.file)
 # how many cores to use in the fitting
