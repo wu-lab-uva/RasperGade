@@ -4,10 +4,6 @@ library(bbmle)
 library(pracma)
 library(doParallel)
 library(extraDistr)
-# load extended functions to ape package
-source("ape_addition.R")
-# load probability functions
-source("PEpois.R")
 
 ### function to select only independent tip-pair contrasts
 ## phy is a phylo-class from ape package
