@@ -1,12 +1,4 @@
-#
-library(ape)
-library(bbmle)
-library(pracma)
-library(doParallel)
-#
-source("ape_addition.R")
-source("PEpois.R")
-#
+#' @export
 productNormalDensity = function(mean,var){
   if(length(mean)!=length(var)) stop("Mean and variance for every normal density function should be provided.")
   sig2 = 1/sum(1/var)
@@ -14,7 +6,7 @@ productNormalDensity = function(mean,var){
   S = sqrt(2*pi*sig2)/prod(sqrt(2*pi*var))*exp(-0.5*(sum(mean^2/var)-mu^2/sig2))
   return(c(mean=mu,var=sig2,scale = S))
 }
-#
+#' @export
 compoundNormalMoments = function(probs,means,vars){
   probs = probs/sum(probs)
   compound.mean = sum(probs*means)
@@ -27,12 +19,12 @@ compoundNormalMoments = function(probs,means,vars){
     compound.var^2-3
   return(c(mean=compound.mean,var=compound.var,skewness = compound.skewness,kurtosis = compound.kurtosis))
 }
-#
+#' @export
 findBestNormalApproximation1 = function(probs,means,vars){
   true.moments = compoundNormalMoments(probs = probs,means = means,vars = vars)
   return(data.frame(mean=unname(true.moments[1]),var=unname(true.moments[2]),probs=1))
 }
-#
+#' @export
 findBestNormalApproximation2 = function(probs,means,vars,numCores=1){
   if(length(probs)<2) return(findBestNormalApproximation1(probs=probs,means=means,vars=vars))
   true.moments = compoundNormalMoments(probs = probs,means = means,vars = vars)
@@ -85,12 +77,12 @@ findBestNormalApproximation2 = function(probs,means,vars,numCores=1){
   return(moments.diff[[best.diff]]$df)
 }
 
-#
+#' @export
 marginalReconstruction = function(x,l){
   xs = productNormalDensity(x,l)
   return(c(x=unname(xs["mean"]),var=unname(xs["var"]),scale=unname(xs["scale"])))
 }
-#
+#' @export
 marginalReconstructionWithPE = function(x,l,lambdas,sizes,sigma,epsilons,margin=1e-6,numCores=1,asymptotic=5){
   # create jump profiles
   nJ = lapply(l,function(ll){
@@ -144,7 +136,7 @@ marginalReconstructionWithPE = function(x,l,lambdas,sizes,sigma,epsilons,margin=
   }
   return(list(x = unname(meanX), var = unname(varX),profile=profile))
 }
-#
+#' @export
 crossValidationWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,margin=1e-6,numCores=1,asymptotic=5){
   cat("Conducting leave-one-out cross validation...\n")
   # the internal function to predict hidden states for each tip
@@ -182,7 +174,7 @@ crossValidationWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,
   # parse results
   cv = do.call(rbind,lapply(cv.error,function(x){x$hsp}))
   cv.error = lapply(cv.error,function(x){x$error})
-  # add time-independent variation to error profiles in needed 
+  # add time-independent variation to error profiles in needed
   if(add.epsilon){
     cv$var = cv$var +FMR$params$epsilon/2
     if(numApprox>1&laplace){
@@ -200,7 +192,7 @@ crossValidationWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,
   #
   return(list(cv=cv,error=cv.error))
 }
-#
+#' @export
 globalReconstructionWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,margin=1e-6,numCores=1,asymptotic=5){
   cat("Reconstructing global ancestral states...\n")
   global.func = function(n,FMR){
@@ -251,7 +243,7 @@ globalReconstructionWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numAppr
   }
   return(list(ace=global.ace,error= global.error))
 }
-#
+#' @export
 fullMarginalReconstructionWithPE = function(phy,x,params,laplace=FALSE,approximate=1,margin=1e-6,numCores=1,asymptotic=5){
   # check if the phylogeny is a rooted, bifurcating tree
   if(!is.binary.phylo(phy)) stop("The phylogeny should be bifurcating!")
@@ -407,7 +399,7 @@ fullMarginalReconstructionWithPE = function(phy,x,params,laplace=FALSE,approxima
   }
   return(list(phy=phy,marginal = mrtv,error=error.marginal,params=list(lambdas=lambdas,sizes=sizes,sigma=sigma,epsilon=epsilon)))
 }
-#
+#' @export
 discretizeResult = function(res,error=NULL,epsilon=0,laplace=FALSE){
   new.res = lapply(1:dim(res)[1],function(i){
     df = data.frame(node=res$node[i],label=res$label[i],x=round(res$x[i]))
@@ -437,7 +429,7 @@ discretizeResult = function(res,error=NULL,epsilon=0,laplace=FALSE){
   new.res = do.call(rbind,new.res)
   return(new.res)
 }
-#
+#' @export
 convert.pulsR.parameters = function(params){
   new.params = c(params[2],params[c(3,1,10)]^2)*c(1,1,1,2)
   names(new.params) = c("lambda","size","sigma","epsilon")
