@@ -1,29 +1,12 @@
-# This script contains some useful function extensions for tree manipulation and analyses from the ape package.
-# By Yingnan Gao, 20210325;  Email: yg5ap@virginia.edu
-
-# load required library
-library(ape)
-
-# function to get the immediate ancestor of a node/tip
-## phy is a phylo-class object
-## x is the index of the tip/node whose immediate ancestor's index will be returned
-## output value of this function is the index of the immediate ancestor
-## if the root is supplied as x, NA will be returned
-### note that this function is NOT vectorized
+#' @import ape
+#' @export
 getLatestAncestor = function (phy, x){
   if (x == Ntip(phy) + 1) return(NA)
   i <- which(phy$edge[, 2] == x)
   return(phy$edge[i, 1])
 }
 
-# function to get the ancestor of a node/tip with a specified depth
-## phy is a phylo-class object
-## x is the index of the tip/node whose immediate ancestor's index will be returned
-## level is the depth between the ancestor and the focal node
-## trace determines if all indices along the path should be returned
-## output value of this function is a vector of the index/indices of the ancestor(s)
-### this function is NOT vectorized
-### this function should be compatible with other functions with the same name (e.g., Kemble et al 2012)
+#' @export
 getAncestor = function (phy, x,level=1,trace=FALSE){
   if(trace) all.anc = numeric(level)
   anc = x
@@ -35,24 +18,16 @@ getAncestor = function (phy, x,level=1,trace=FALSE){
   if(trace){
     return(all.anc[which((all.anc!=0)&(!is.na(all.anc)))])
   }else{
-    return(anc) 
+    return(anc)
   }
 }
 
-# function to get the root of a rooted phylogeny
-## phy is a phylo-class object
-## output value of this function is the index of the root
-### for unrooted tree, this function will also return an index, but it is not the true root of the tree
+#' @export
 getRoot = function(phy){
   return(Ntip(phy) + 1)
 }
 
-# function to get the immediate descendants of a node/tip
-## phy is a phylo-class object
-## x is the index of the tip/node whose immediate descendants' indices will be returned
-## output value of this function is a vector of the indices of the immediate descendants
-## if a tip is supplied as x, NA will be returned
-### note that this function is NOT vectorized
+#' @export
 getNextDescendants = function (phy, x){
   if (x <= Ntip(phy))
     return(NA)
@@ -60,12 +35,7 @@ getNextDescendants = function (phy, x){
   return(phy$edge[i, 2])
 }
 
-# function to get the sister node/tip of a node/tip
-## phy is a phylo-class object
-## x is the index of the tip/node whose sisters' indices will be returned
-## output value of this function is a vector of the indices of the sisters
-## if the root is supplied as x, NA will be returned
-### note that this function is NOT vectorized
+#' @export
 findSisters <- function(phy,x){
   # x should be the index
   parent = getLatestAncestor(phy,x)
@@ -74,7 +44,7 @@ findSisters <- function(phy,x){
   sis = twin[twin!=x]
   return(sis)
 }
-#
+#' @export
 findEdges = function(phy,node,ancestor = FALSE){
   # node should be the index
   if(ancestor){
@@ -84,12 +54,12 @@ findEdges = function(phy,node,ancestor = FALSE){
   }
   return(edge.index)
 }
-#
+#' @export
 getConnected = function(phy,x){
   conn = c(phy$edge[phy$edge[,2]==x,1],phy$edge[phy$edge[,1]==x,2])
   return(conn)
 }
-#
+#' @export
 predTraitByPIC = function(phy, trait,rate=1){
   # predicts trait value from known extant species using PIC (BM-ML)
   # this function is modified from Kembel's function in picante package
@@ -121,7 +91,8 @@ predTraitByPIC = function(phy, trait,rate=1){
   pred$var = pred$var*rate
   return(pred)
 }
-#
+
+#' @export
 continuousAceByPIC = function(x,phy,rate=1){
   # this function calculates the global ancestral state of all internal nodes by rerooting the tree
   # it is the BM-ML solution to all ancestral states of internal nodes
