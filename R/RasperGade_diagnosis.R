@@ -1,4 +1,5 @@
-#
+#' @import pracma
+#' @export
 logitSigmoid=function(x,p){
   sapply(x,function(xx){
     if(is.na(xx)|is.nan(xx)|is.nan(p)|is.na(p)) return(NA)
@@ -6,7 +7,7 @@ logitSigmoid=function(x,p){
     trans.x = sigmoid(logit.x)
   })
 }
-#
+#' @export
 reverse.logitSigmoid=function(x,p){
   sapply(x,function(xx){
     if(is.na(xx)|is.nan(xx)|is.nan(p)|is.na(p)) return(NA)
@@ -14,7 +15,7 @@ reverse.logitSigmoid=function(x,p){
     trans.x = sigmoid(logit.x)
   })
 }
-#
+#' @export
 calculateBinomRSS = function(p,obs,group=NULL,bin=20,...){
   if(is.null(group)){
     bin.rss = sapply(seq(0.005,0.995,0.01),function(z){
@@ -45,7 +46,7 @@ calculateBinomRSS = function(p,obs,group=NULL,bin=20,...){
   }
   return(this.rss)
 }
-#
+#' @export
 calculateHeteroscedasticity = function(x,y,bin=100,n=1000){
   idx = sort(y,index.return=TRUE)$ix
   bins=round(seq(0,length(x),length.out = bin+1))
@@ -55,7 +56,7 @@ calculateHeteroscedasticity = function(x,y,bin=100,n=1000){
   h = fligner.test(x = vars)
   return(c(h=h$statistic,p.value=h$p.value))
 }
-#
+#' @export
 calculateExclusion = function(pred,error,epsilon=0,tolerance,alpha=0.05,laplace=FALSE,discrete=FALSE){
   if(discrete){
     pred = round(pred)
@@ -66,7 +67,7 @@ calculateExclusion = function(pred,error,epsilon=0,tolerance,alpha=0.05,laplace=
       prob.within.range = sapply(1:length(pred),function(i){
         pMixNormalLaplace(q = pred[i]+tolerance,mean = error[[i]]$x,sd = sqrt(error[[i]]$var),
                           laplace.var = epsilon/2,probs = error[[i]]$probs)
-      }) - 
+      }) -
         sapply(1:length(pred),function(i){
           pMixNormalLaplace(q = pred[i]-tolerance,mean = error[[i]]$x,sd = sqrt(error[[i]]$var),
                             laplace.var = epsilon/2,probs = error[[i]]$probs)
@@ -79,7 +80,7 @@ calculateExclusion = function(pred,error,epsilon=0,tolerance,alpha=0.05,laplace=
     if(is.list(error)){
       prob.within.range = sapply(1:length(pred),function(i){
         pMixNormal(q = pred[i]+tolerance,mean = error[[i]]$x,sd = sqrt(error[[i]]$var+epsilon/2),probs = error[[i]]$probs)
-      }) - 
+      }) -
         sapply(1:length(pred),function(i){
           pMixNormal(q = pred[i]-tolerance,mean = error[[i]]$x,sd = sqrt(error[[i]]$var+epsilon/2),probs = error[[i]]$probs)
         })
@@ -90,7 +91,7 @@ calculateExclusion = function(pred,error,epsilon=0,tolerance,alpha=0.05,laplace=
   }
   return(list(p=prob.within.range, decision=prob.within.range < (1-alpha)))
 }
-#
+#' @export
 checkExclusion = function(obs,pred,tolerance,discrete=FALSE){
   if(discrete){
     pred = round(pred)
@@ -98,7 +99,7 @@ checkExclusion = function(obs,pred,tolerance,discrete=FALSE){
   }
   return(abs(obs-pred) > tolerance)
 }
-#
+#' @export
 calculateExclusionErrorRate = function(obs,pred,error,epsilon=0,tolerance,alpha=0.05,laplace=FALSE,discrete=FALSE){
   observed.exclusion = checkExclusion(obs,pred,tolerance,discrete)
   predicted.exclusion = calculateExclusion(pred,error,epsilon,tolerance,alpha,laplace,discrete)
@@ -118,7 +119,7 @@ calculateExclusionErrorRate = function(obs,pred,error,epsilon=0,tolerance,alpha=
           FRR=sum(observed.exclusion&(!predicted.exclusion))/sum(!predicted.exclusion))
   return(list(obs=observed.exclusion,pred=predicted.exclusion,error=errors,expect=expected.errors,rate=rates))
 }
-#
+#' @export
 analyzeResidualErrorByPPplot = function(trait,pred,error,epsilon=0,laplace=FALSE,discrete=FALSE,n=1000){
   if(is.null(epsilon)) epsilon=0
   if(discrete){
@@ -136,7 +137,7 @@ analyzeResidualErrorByPPplot = function(trait,pred,error,epsilon=0,laplace=FALSE
   }
   return(res)
 }
-#
+#' @export
 analyzeResidualErrorByHeteroscedasticity = function(trait,pred,error,epsilon=0,laplace=FALSE,bin=100,n=1000){
   if(is.null(epsilon)) epsilon=0
   pZ = pseudo.Z.score(trait,pred,error,epsilon,laplace)
@@ -148,7 +149,7 @@ analyzeResidualErrorByHeteroscedasticity = function(trait,pred,error,epsilon=0,l
   rss = calculateHeteroscedasticity(x = pZ$q,y = error.as.var,bin = bin,n = n)
   return(rss)
 }
-#
+#' @export
 analyzeResidualErrorByCI = function(trait,pred,error,epsilon=0,laplace=FALSE,bin=20,alpha=0.05){
   if(is.null(epsilon)) epsilon=0
   pZ = pseudo.Z.score(trait,pred,error,epsilon,laplace)
@@ -160,7 +161,7 @@ analyzeResidualErrorByCI = function(trait,pred,error,epsilon=0,laplace=FALSE,bin
   rss = calculateBinomRSS(p = rep(alpha,length(error.as.var)),obs = (sapply(pZ$p,function(x){min(x,1-x)})<(alpha/2)),group = log(error.as.var),bin = bin)
   return(rss)
 }
-#
+#' @export
 pseudo.Z.score = function(trait,pred,error,epsilon=0,laplace=FALSE){
   pZ = sapply(1:length(pred),function(i){
     if(is.list(error)){
