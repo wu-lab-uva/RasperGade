@@ -1,25 +1,15 @@
-# load required packages
-library(ape)
-library(bbmle)
-library(pracma)
-library(doParallel)
-library(extraDistr)
-
-### function to select only independent tip-pair contrasts
-## phy is a phylo-class from ape package
-## x is a named vector that contains the trait value for each tip
-## remove.zero determines if zero-contrasts are removed from the results
-# output value of this function is a list whose elements are vectors/lists
-# of PIC, trait value, branch length,node index and tip labels
+#' @import bbmle
+#' @import doParallel
+#' @export
 findTerminalPIC = function (phy, x, remove.zero = FALSE) {
   # add node labels if not already exist
-  if (is.null(phy$node.label)) 
+  if (is.null(phy$node.label))
     phy = makeNodeLabel(phy)
   # keep only tip-values
   x = x[phy$tip.label]
   # find nodes that have only tip-children
-  tip.node = setdiff(sapply(1:Ntip(phy), getLatestAncestor, 
-                            phy = phy), sapply(Ntip(phy) + 1:phy$Nnode, getLatestAncestor, 
+  tip.node = setdiff(sapply(1:Ntip(phy), getLatestAncestor,
+                            phy = phy), sapply(Ntip(phy) + 1:phy$Nnode, getLatestAncestor,
                                                phy = phy))
   # tip labels for the tip-pairs
   tip.label = lapply(tip.node, function(n) {
@@ -41,7 +31,7 @@ findTerminalPIC = function (phy, x, remove.zero = FALSE) {
   if (remove.zero) {
     p0 = sum(term.pic == 0)/length(term.pic)
     idx = term.pic != 0
-    return(list(pic = term.pic[idx], x = term.x[idx], l = term.l[idx], 
+    return(list(pic = term.pic[idx], x = term.x[idx], l = term.l[idx],
                 node = tip.node[idx],tip = tip.label[idx] ,p0 = p0))
   }
   else {
@@ -49,13 +39,7 @@ findTerminalPIC = function (phy, x, remove.zero = FALSE) {
   }
 }
 
-### function to quickly reconstruct ancestral states and calculate PIC with time-independent variation
-## phy is a phylo-class from ape package
-## x is a named vector that contains the trait value for each tip
-## rate is the total rate of evolution (variance of trait change per unit branch length)
-## epsilon is the variance of time-independent variation between nodes
-# output value of this function is a list whose elements are vectors of tip and ancestral states, tip and
-# ancestral uncertainty, and trait change, branch length, total uncertainty, total variance between nodes
+#' @export
 reconstructAncestralStates = function(phy,x,rate,epsilon){
   # pre-allocate ancestral states and their corresponding variance
   trait = c(x[phy$tip.label],numeric(phy$Nnode))
@@ -68,7 +52,7 @@ reconstructAncestralStates = function(phy,x,rate,epsilon){
   idx = reorder.phylo(x = phy,order = "postorder",index.only = TRUE)
   # reconstruct ancestral state using Felsenstein's method
   for(i in seq(1,length(idx),2)){
-    # find the index of ancestor and descendants 
+    # find the index of ancestor and descendants
     anc.idx = phy$edge[idx[i],1]
     des.idx = phy$edge[idx[c(i,i+1)],2]
     # find trait values and branch lengths
@@ -92,12 +76,7 @@ reconstructAncestralStates = function(phy,x,rate,epsilon){
   return(list(trait=trait,var=trait.var,contrast=dx,l = dl,epsilon=de,lprime=dl*rate+de))
 }
 
-### function to calculate pseudo-PIC that normalizes trait changes into standard normal distribution
-## phy is a phylo-class from ape package
-## x is a named vector that contains the trait value for each tip
-## pfunc is one of the cumulative probability function in PEpois.R
-## params is the parameter of the pfunc
-# output value of this function is a vector of pseudo-PIC
+#' @export
 pseudo.pic = function(phy,x,pfunc,params){
   # get the number of Poisson processes
   numPE = length(params)/2-1
@@ -111,24 +90,19 @@ pseudo.pic = function(phy,x,pfunc,params){
   # calculate the cumulative probability of trait differences between nodes under the distribution defined by pfunc
   pp = sapply(1:length(anc$contrast),function(i){
     do.call(pfunc,c(list(q=anc$contrast[i],t=anc$l[i],epsilon=anc$epsilon[i]),as.list(params[-length(params)])))
-    })
+  })
   # transform trait differences into normal quantiles (pseudo-PIC)
   p.pic = qnorm(p = pp)
   return(p.pic)
 }
 
-### function to get parameters from the fitting output
-## x is a list with an element named params, which is the output of fitting functions in this script
+#' @export
 get.params = function(x){x$params}
 
-### function to get AIC from the fitting output
-## x is a list with an element named AIC, which is the output of fitting functions in this script
+#' @export
 get.AIC = function(x){x$AIC}
 
-### function to calculate the process variance
-## params is a named vector of parameters whose elements is oredered as:
-## [lambda, size], sigma, epsilon
-## the elements in the bracket can repeat several times
+#' @export
 total.process.variance = function(params){
   # number of Poisson processes
   numPE = length(params)/2-1
@@ -140,9 +114,7 @@ total.process.variance = function(params){
   return(sum(process.variance)+params[2*numPE+1])
 }
 
-### function to log-transform the model parameters before fitting
-## x is a named vector of parameters
-## size.ratio is the constraint of jump size between each Poisson process
+#' @export
 initialize.parameters = function(x,size.ratio){
   numPE = length(x)/2-1
   for(i in seq(numPE,2,-1)){
@@ -151,34 +123,23 @@ initialize.parameters = function(x,size.ratio){
   return(as.list(log(x)))
 }
 
-### function to log-transform the model parameters before fitting (PE1)
-## x is a named vector of parameters
+#' @export
 initialize.parameters.SP = function(x,...){as.list(log(x))}
 
-### function to log-transform the model parameters before fitting (PE2)
-## x is a named vector of parameters
+#' @export
 initialize.parameters.MP = function(x,...){
   x["size2"]=x["size1"]/x["size2"]-size.ratio
   return(as.list(log(x)))
 }
 
-### function to log-transform the model parameters before fitting (PE3)
-## x is a named vector of parameters
+#' @export
 initialize.parameters.TP = function(x,...){
   x["size3"]=x["size2"]/x["size3"]-size.ratio
   x["size2"]=x["size1"]/x["size2"]-size.ratio
   return(as.list(log(x)))
 }
 
-### function to fit a model through high-low tolerance phases
-## fit.func is one of the model fitting functions defined in this script
-## start.params is a list whose first element contains the list of starting model parameters
-## params1 and params2 are the other arguments passed to the fitting function in the two phases
-## AIC.func is the function to extract AIC from the results
-## params.function is the function to extract parameters from the results
-## ini.function is the function to transform the model parameters before fitting
-## AIC.cutoff is the threshold to stop fitting
-# output value of this function is a list that contains the final AIC, final parameter and results of each phase
+#' @export
 fit.model.byNM.2step = function(fit.func="mle2",start.params,params1,params2,
                                 AIC.func="AIC",params.func=function(x){x@coef},ini.func="as.list",
                                 AIC.cutoff=2,...){
@@ -197,15 +158,7 @@ fit.model.byNM.2step = function(fit.func="mle2",start.params,params1,params2,
   return(list(params = res2$params, AIC = res2$AIC,high=res1,low=res2))
 }
 
-### function to fit a model by maximum likelihood with multiple steps
-## fit.func is one of the model fitting functions defined in this script
-## start.params is a list whose first element contains the list of starting model parameters
-## params is the other arguments passed to the fitting function
-## AIC.func is the function to extract AIC from the results
-## params.function is the function to extract parameters from the results
-## ini.function is the function to transform the model parameters before fitting
-## AIC.cutoff is the threshold to stop fitting
-# output value of this function is a list that contains the final AIC, final parameter and results of each step
+#' @export
 fit.model.byNM = function(fit.func="mle2",start.params,params,
                           AIC.func="AIC",params.func=function(x){x@coef},ini.func="as.list",
                           AIC.cutoff=2,...){
@@ -244,16 +197,7 @@ fit.model.byNM = function(fit.func="mle2",start.params,params,
 }
 
 
-### functions to fit BM and PE1 models without a phylogeny
-## x is a vector of trait changes between nodes
-## l is a vector of branch lengths between nodes
-## start.value is a list of starting parameters
-## numCores is the number of cores when run in parallel
-## fixed is a list of fixed parameters
-## laplace determines if Laplace distribution is used for time-independent variation
-## eval.only determines if the function should only evaluate the AIC of starting parameters
-## reltol is the relative tolerance of the optimizer
-# output of these functions is a list of AIC, model parameter and detailed optimization results.
+#' @export
 fitPE = function(x,l,start.value=NULL,numCores=1,fixed=list(),laplace=TRUE,eval.only=FALSE,reltol=sqrt(.Machine$double.eps),...){
   # set the probability function to use
   if(laplace){
@@ -313,33 +257,22 @@ fitPE = function(x,l,start.value=NULL,numCores=1,fixed=list(),laplace=TRUE,eval.
                 raw=NA))
   }
   # optimize for the best model parameters
-  result = do.call("mle2", 
-                   c(list(LL, 
-                          start = start.value, 
+  result = do.call("mle2",
+                   c(list(LL,
+                          start = start.value,
                           data = list(x=x),
                           fixed = fixed,
                           method = method,
                           control = list(trace=TRUE,maxit=2000,reltol=reltol)
                    )))
-  # transform the parameters back to the linear scale 
+  # transform the parameters back to the linear scale
   res = exp(result@fullcoef)
   # stop parallel clusters
   if(numCores>1) stopCluster(cl)
   return(list(params=res,AIC=AIC(result),raw= result))
 }
 
-### functions to fit BM and PE1 models along a phylogeny
-## phy is a phylo-class object from ape package
-## x is a vector of trait values of the tips
-## start.value is a list of starting parameters
-## numCores is the number of cores when run in parallel
-## fixed is a list of fixed parameters
-## ignore.zero determines if zero-contrasts are removed from the optimization
-## laplace determines if Laplace distribution is used for time-independent variation
-## eval.only determines if the function should only evaluate the AIC of starting parameters
-## bootstrap is a vector of node indexes that should be used in the optimization 
-## reltol is the relative tolerance of the optimizer
-# output of these functions is a list of AIC, model parameter and detailed optimization results.
+#' @export
 fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=TRUE,
                      laplace=TRUE,eval.only=FALSE,bootstrap=NULL,reltol=sqrt(.Machine$double.eps),...){
   # initialize node indexes if not supplied
@@ -413,9 +346,9 @@ fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=
                 raw=NA))
   }
   # search for the best model parameters
-  result = do.call("mle2", 
-                   c(list(LL, 
-                          start = start.value, 
+  result = do.call("mle2",
+                   c(list(LL,
+                          start = start.value,
                           data = list(x=x),
                           fixed = fixed,
                           method = method,
@@ -428,11 +361,7 @@ fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=
   return(list(params=res,AIC=AIC(result),raw= result))
 }
 
-### function to simulate trait change between nodes
-## l is a vector of branch lengths
-## lambda, size, sigma and epsilon are parameters as defined in PEpois.R
-## nj specifies the number of jumps between a specific pair of nodes, if supplied
-# the output of this function is a list whose elements are vectors of trait change
+#' @export
 # introduced by different processes
 simulatePET = function(l,align.length=NA,lambda,size,sigma,epsilon,nj=NULL){
   # get the number of trait changes to simulate
@@ -456,12 +385,7 @@ simulatePET = function(l,align.length=NA,lambda,size,sigma,epsilon,nj=NULL){
               ep=ep,ebm = ebm, elaplace = elaplace))
 }
 
-### functions to simulate BM and PE1 trait value over phylogeny
-## phy is a phylo-class object from ape package
-## lambda, size, sigma and epsilon are parameters as defined in PEpois.R
-## start is the trait value of the common ancestor (root)
-# the output of this function is a vector of trait values
-# BM and PE1 model
+#' @export
 simulatePET.phy = function(phy,lambda,size,sigma,epsilon,start=0){
   # initialize trait values
   trait.sim = numeric(length = Ntip(phy)+Nnode(phy))+start
@@ -471,7 +395,7 @@ simulatePET.phy = function(phy,lambda,size,sigma,epsilon,start=0){
   }else{
     names(trait.sim) = c(phy$tip.label,phy$node.label)
   }
-  # reorder edges for root-to-tip simulation 
+  # reorder edges for root-to-tip simulation
   phy = reorder.phylo(phy,order = "postorder")
   # simulate trait changes between nodes
   trait.delta = simulatePET(l = phy$edge.length,lambda = lambda,size=size,sigma = sigma,epsilon = epsilon)
@@ -485,12 +409,7 @@ simulatePET.phy = function(phy,lambda,size,sigma,epsilon,start=0){
   return(trait.sim)
 }
 
-### function to summarize model parameters
-## AIC is a vector of AIC values from the optimizer
-## scale is the scale used to linearly transform the data
-## sample.size is the number of nodes that is evaluated in the likelihood function
-# output value of this function is a vector of corrected AIC values
-# note that this function should not change the best model for any trait
+#' @export
 summarize.model.parameter = function(params,time=2000,scale=1){
   # get the number of Poisson processes
   numPE = length(params)/2-1
@@ -519,12 +438,7 @@ summarize.model.parameter = function(params,time=2000,scale=1){
   return(list(summary=data.frame(time=wait.time,rate=jump.rate,size=relative.size,contribution = contribution),params=unscale.params))
 }
 
-### function to correct for the effect of scaling
-## AIC is a vector of AIC values from the optimizer
-## scale is the scale used to linearly transform the data
-## sample.size is the number of nodes that is evaluated in the likelihood function
-# output value of this function is a vector of corrected AIC values
-# note that this function should not change the best model for any trait
+#' @export
 normalize.AIC = function(AIC,scale=1,sample.size=6667){
   return(AIC-log(scale)*sample.size)
 }
