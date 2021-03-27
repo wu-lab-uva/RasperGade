@@ -31,10 +31,15 @@ devtools::install_github(repo = "wu-lab-uva/RasperGade")
 ```
 ## Data format
 `RasperGade` has two basic input data: the phylogeny and the extant trait values.
+
 Phylogenies are expected to be phylo-class objects as defined by the R package `ape`.
+
 Extant trait values should be in a named numeric vector, and the names should correspond to tip labels of the phylogeny. Hidden states to be predicted are marked by NA values in the named vector.
+
 Tips should have unique labels, and if nodes have labels, they should be unique.
 
 ## Demo
 
+
 ## Reproduction of results in the preprint
+To reproduce the results in the preprint, follow the instrucitons in Preprint2021/Instruction.txt
