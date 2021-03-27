@@ -1,6 +1,12 @@
 # RasperGade: Reconstructing Ancestral State under Pulsed Evolution in R by Gaussian Decomposition
 `RasperGade` is an  R package that predicts ancestral and hidden states while accounting for pulsed evolution and time-independent variation.
-It has 3 major functions: fitting the pulsed evolution model given extant trait value and a phylogeny, reconstructing ancestral states or predicting hidden states, and evaluating the quality of predicted ancestral and hidden states
+It has 3 major functions:
+
+1. fitting the pulsed evolution model given extant trait value and a phylogeny
+
+2. reconstructing ancestral states or predicting hidden states
+
+3. evaluating the quality of predicted ancestral and hidden states
 
 Detailed algorithm and analyses are described in the preprint: ...
 
