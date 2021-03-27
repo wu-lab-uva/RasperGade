@@ -48,4 +48,4 @@ Tips should have unique labels, and if nodes have labels, they should be unique.
 
 
 ## Reproduction of results in the preprint
-To reproduce the results in the preprint, follow the instrucitons in Preprint2021/Instruction.txt
+To reproduce the results in the preprint, follow the instrucitons in `Preprint2021/Instruction.txt`
