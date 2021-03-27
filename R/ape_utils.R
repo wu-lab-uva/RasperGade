@@ -8,7 +8,7 @@
 #' @param level the depth between the ancestor and the focal node/tip
 #' @param trace logical, if FALSE (the default), only the earliest ancestor is returned, otherwise, all ancestors along the path are returned
 #' @return A vector of ancestor indices is returned. If root is supplied, `NA` will be returned
-#' @seealso [getRoot][getNextDescendant][findSisters][getConnected]
+#' @seealso [getRoot][getNextDescendants][findSisters][getConnected]
 #' @export
 #' @rdname getAncestor
 getLatestAncestor = function (phy, x){
@@ -40,7 +40,8 @@ getAncestor = function (phy, x,level=1,trace=FALSE){
 #'
 #' @param phy a phylo-class object from the `ape` package
 #' @return The index of the root
-#' #' @export
+#' @seealso [getAncestor][getNextDescendants][findSisters][getConnected]
+#' @export
 #' @rdname getRoot
 getRoot = function(phy){
   return(Ntip(phy) + 1)
@@ -53,8 +54,9 @@ getRoot = function(phy){
 #' @param phy a phylo-class object from the `ape` package
 #' @param x the index of the focal node
 #' @return The indices of the immediate descendants. If a tip is supplied, `NA`` will be returned.
+#' @seealso [getRoot][getAncestor][findSisters][getConnected]
 #' @export
-#' @rdname getRoot
+#' @rdname getNextDescendants
 getNextDescendants = function (phy, x){
   if (x <= Ntip(phy))
     return(NA)
@@ -70,6 +72,7 @@ getNextDescendants = function (phy, x){
 #' @param x the index of the focal node
 #' @return The indices of the sisters. If the root is supplied, `NA`` will be returned.
 #' @return If a non-root node has no sister, an empty numeric vector will be returned.
+#' @seealso [getRoot][getAncestor][getNextDescendants][getConnected]
 #' @export
 #' @rdname findSisters
 findSisters <- function(phy,x){
@@ -91,6 +94,7 @@ findSisters <- function(phy,x){
 #' @param ancestor logical, if FALSE (the default), the edges originating from the node are returned, otherwise, the edge leading to the node is returned.
 #' @return `findEdges` returns the indices of the edges. Note that these indices are different from those of nodes/tips
 #' @return `getConnected` returns the indices of the connected nodes.
+#' @seealso [getRoot][getAncestor][getNextDescendants][findSisters]
 #' @export
 #' @rdname getConnected
 findEdges = function(phy,node,ancestor = FALSE){
