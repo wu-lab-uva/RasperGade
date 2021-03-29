@@ -1,88 +1,27 @@
+#' @title  Reconstruct marginal ancestral state from a node's immediate descendants
+#'
+#' @description Reconstruct marginal ancestral state using immediate descendants under BM or pulsed evolution model
+#'
+#' @param x vector of means of mixed normal distributions
+#' @param l vector of standard deviations of mixed normal distributions
+#' @param lambdas vector of jump frequencies, has the same length as the number of compound Poisson processes
+#' @param sizes vector of variances of trait change per jump, has the same length as the number of compound Poisson processes
+#' @param sigma rate of BM, has a length of 1
+#' @param epsilons vector of uncertainty not explained by the branches, has the same length as the number of immediate descendants
+#' @param margin total probability mass of the number of jump not taken into account per compound Poisson process
+#' @param numCores number of cores to use
+#' @param asymptotic threshold of expected number of jumps beyond which the trait change is assumed to be normal
+#' @return `marginalReconstruction` returns a vector of the mean variance and the scaling factor
+#' @return `marginalReconstructionWithPE` returns a list of the mean, variance and a data frame of the normal mixture
 #' @export
-productNormalDensity = function(mean,var){
-  if(length(mean)!=length(var)) stop("Mean and variance for every normal density function should be provided.")
-  sig2 = 1/sum(1/var)
-  mu = sum(mean/var)*sig2
-  S = sqrt(2*pi*sig2)/prod(sqrt(2*pi*var))*exp(-0.5*(sum(mean^2/var)-mu^2/sig2))
-  return(c(mean=mu,var=sig2,scale = S))
-}
-#' @export
-compoundNormalMoments = function(probs,means,vars){
-  probs = probs/sum(probs)
-  compound.mean = sum(probs*means)
-  compound.var = sum(probs*vars)+sum(probs*(means^2))-compound.mean^2
-  compound.skewness = (sum(probs*(means-compound.mean)^3)+sum(3*probs*(means-compound.mean)*vars))/
-    sqrt(compound.var)^3
-  compound.kurtosis=(sum(probs*(means-compound.mean)^4)+
-                       sum(6*probs*(means-compound.mean)^2*vars)+
-                       sum(probs*3*vars^2))/
-    compound.var^2-3
-  return(c(mean=compound.mean,var=compound.var,skewness = compound.skewness,kurtosis = compound.kurtosis))
-}
-#' @export
-findBestNormalApproximation1 = function(probs,means,vars){
-  true.moments = compoundNormalMoments(probs = probs,means = means,vars = vars)
-  return(data.frame(mean=unname(true.moments[1]),var=unname(true.moments[2]),probs=1))
-}
-#' @export
-findBestNormalApproximation2 = function(probs,means,vars,numCores=1){
-  if(length(probs)<2) return(findBestNormalApproximation1(probs=probs,means=means,vars=vars))
-  true.moments = compoundNormalMoments(probs = probs,means = means,vars = vars)
-  sample.range = sort(unique(means),decreasing = FALSE)
-  sample.range = sort(c(sample.range,(sample.range[-1]+sample.range[-length(sample.range)])/2),decreasing = FALSE)
-  sample.likelihood = c(0,sapply(sample.range,function(x){
-    sum(dnorm(x = x,mean = means,sd = sqrt(vars))*probs)
-  }),0)
-  sample.peak = which(sapply(2:(length(sample.range)+1),function(i){
-    (sample.likelihood[i]>=sample.likelihood[i+1])&(sample.likelihood[i]>=sample.likelihood[i-1])
-  }))
-  if(length(sample.peak)<2){
-    means.order = sort(abs(means-sample.range[sample.peak]),index.return=TRUE)$ix
-    if(length(probs)>1e3){
-      sample.break = round(seq(from=1,to = length(means.order)-1,length.out = 1000))
-    }else{
-      sample.break = 1:(length(means.order)-1)
-    }
-    moments.diff = mclapply(sample.break,function(i){
-      this.idx = means.order[1:i]
-      moments.1 = compoundNormalMoments(probs = probs[this.idx]/sum(probs[this.idx]),means = means[this.idx],vars = vars[this.idx])
-      moments.2 = compoundNormalMoments(probs = probs[-(this.idx)]/sum(probs[-(this.idx)]),means = means[-(this.idx)],vars = vars[-(this.idx)])
-      new.df = data.frame(mean=unname(c(moments.1[1],moments.2[1])),var=unname(c(moments.1[2],moments.2[2])),
-                          probs=c(sum(probs[this.idx]),sum(probs[-(this.idx)])))
-      new.likelihood = c(0,sapply(sample.range,function(x){
-        sum(dnorm(x = x,mean = new.df$mean,sd = sqrt(new.df$var))*new.df$probs)
-      }),0)
-      rss = sum((sample.likelihood-new.likelihood)^2)
-      return(list(diff=rss,df=new.df))
-    },mc.cores = numCores)
-  }else{
-    peak.combn = combn(x = sample.peak,m = 2,simplify = FALSE)
-    moments.diff = mclapply(peak.combn,function(i){
-      new.df = do.call(rbind,lapply(i,function(j){
-        this.group = which(((means-mean(sample.range[i]))*(sample.range[j]-mean(sample.range[i])))>0)
-        half.group = which(((means-mean(sample.range[i]))*(sample.range[j]-mean(sample.range[i])))==0)
-        this.moment = compoundNormalMoments(probs = c(probs[this.group],probs[half.group]/2),
-                              means = means[c(this.group,half.group)],vars = vars[c(this.group,half.group)])
-        data.frame(mean=unname(this.moment[1]),var=unname(this.moment[2]),
-                   probs=sum(c(probs[this.group],probs[half.group]/2)))
-      }))
-      new.likelihood = c(0,sapply(sample.range,function(x){
-        sum(dnorm(x = x,mean = new.df$mean,sd = sqrt(new.df$var))*new.df$probs)
-      }),0)
-      rss = sum((sample.likelihood-new.likelihood)^2)
-      return(list(diff=rss,df=new.df))
-    },mc.cores = numCores)
-  }
-  best.diff = which.min(sapply(moments.diff,function(x){x$diff}))
-  return(moments.diff[[best.diff]]$df)
-}
-
-#' @export
+#' @rdname marginalReconstruction
 marginalReconstruction = function(x,l){
   xs = productNormalDensity(x,l)
   return(c(x=unname(xs["mean"]),var=unname(xs["var"]),scale=unname(xs["scale"])))
 }
+
 #' @export
+#' @rdname marginalReconstruction
 marginalReconstructionWithPE = function(x,l,lambdas,sizes,sigma,epsilons,margin=1e-6,numCores=1,asymptotic=5){
   # create jump profiles
   nJ = lapply(l,function(ll){
@@ -136,114 +75,25 @@ marginalReconstructionWithPE = function(x,l,lambdas,sizes,sigma,epsilons,margin=
   }
   return(list(x = unname(meanX), var = unname(varX),profile=profile))
 }
+
+#' @title  Reconstruct all marginal ancestral state in a phylogeny
+#'
+#' @description Reconstruct all marginal ancestral states, including those require rerooting, in a phylogeny
+#'
+#' @param x named vector of tip trait values; names should match the tip labels; NA should not be included
+#' @param phy phylo-class object from `ape` package
+#' @param params a vector of pulsed evolution parameters
+#' @param laplace logical, when true, time-independent variation follows Laplace distribution
+#' @param approximate number of normal distributions to approximate the uncertainty distribution for internal nodes
+#' @param margin total probability mass of the number of jump not taken into account per compound Poisson process
+#' @param numCores number of cores to use
+#' @param asymptotic threshold of expected number of jumps beyond which the trait change is assumed to be normal
+#' @details
+#' Parameter vector should be in the format of lambda,size,...,sigma,epsilon
+#' Currently `laplace` should always set to be `FALSE`.
+#' @return returns a list that contains all the information to calculate the global ancestral states and hidden states
 #' @export
-crossValidationWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,margin=1e-6,numCores=1,asymptotic=5){
-  cat("Conducting leave-one-out cross validation...\n")
-  # the internal function to predict hidden states for each tip
-  cv.func = function(tip,FMR){
-    this.match = which(FMR$marginal$orientation==tip)
-    error.index = do.call(expand.grid,lapply(1:length(this.match),function(i){
-      1:dim(FMR$error[[this.match[i]]]$approximate)[1]
-    }))
-    rec = do.call(rbind,lapply(1:dim(error.index)[1],function(i){
-      this.rec = marginalReconstructionWithPE(x = sapply(1:length(this.match),function(j){
-        FMR$error[[this.match[j]]]$approximate$x[error.index[i,j]]
-      }),
-      l = FMR$phy$edge.length[FMR$marginal$edge[this.match]],
-      epsilons = sapply(1:length(this.match),function(j){
-        FMR$error[[this.match[j]]]$approximate$var[error.index[i,j]]
-      }),
-      sigma = FMR$params$sigma,lambdas=FMR$params$lambdas,sizes = FMR$params$sizes,margin = margin,asymptotic = asymptotic)
-      this.probs = prod(sapply(1:length(this.match),function(j){
-        FMR$error[[this.match[j]]]$approximate$probs[error.index[i,j]]
-      }))
-      this.error = this.rec$profile
-      this.error$probs = this.error$probs*this.probs
-      return(this.error)
-    }))
-    rec$probs = rec$probs/sum(rec$probs)
-    rec.moments = compoundNormalMoments(probs = rec$probs,means = rec$x,vars = rec$var)
-    this.hsp = data.frame(node=tip,label = FMR$phy$tip.label[tip],
-                          x = unname(rec.moments[1]),
-                          var = unname(rec.moments[2]),
-                          stringsAsFactors = FALSE)
-    return(list(error=rec,hsp=this.hsp))
-  }
-  # run in parallel if required
-  cv.error = mclapply(1:Ntip(FMR$phy),cv.func,FMR=FMR,mc.cores = numCores)
-  # parse results
-  cv = do.call(rbind,lapply(cv.error,function(x){x$hsp}))
-  cv.error = lapply(cv.error,function(x){x$error})
-  # add time-independent variation to error profiles in needed
-  if(add.epsilon){
-    cv$var = cv$var +FMR$params$epsilon/2
-    if(numApprox>1&laplace){
-      cv.error = lapply(cv.error,function(x){
-        return(data.frame(x=c(x$x,x$x),
-                          var=c(x$var+FMR$params$epsilon/2*exp(-1),x$var+FMR$params$epsilon/2*exp(1)),
-                          probs=c(x$probs*exp(1)/(1+exp(1)),x$probs/(1+exp(1)))))
-      })
-    }else{
-      for(tip in 1:Ntip(FMR$phy)){
-        cv.error[[tip]]$var = cv.error[[tip]]$var+FMR$params$epsilon/2
-      }
-    }
-  }
-  #
-  return(list(cv=cv,error=cv.error))
-}
-#' @export
-globalReconstructionWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,margin=1e-6,numCores=1,asymptotic=5){
-  cat("Reconstructing global ancestral states...\n")
-  global.func = function(n,FMR){
-    this.match = rev(which(FMR$marginal$orientation==n))
-    error.index = do.call(expand.grid,lapply(1:length(this.match),function(i){
-      1:dim(FMR$error[[this.match[i]]]$approximate)[1]
-    }))
-    rec = do.call(rbind,lapply(1:dim(error.index)[1],function(i){
-      this.rec = marginalReconstructionWithPE(x = sapply(1:length(this.match),function(j){
-        FMR$error[[this.match[j]]]$approximate$x[error.index[i,j]]
-      }),
-      l = FMR$phy$edge.length[FMR$marginal$edge[this.match]],
-      epsilons = sapply(1:length(this.match),function(j){
-        FMR$error[[this.match[j]]]$approximate$var[error.index[i,j]]
-      }),
-      sigma = FMR$params$sigma,lambdas=FMR$params$lambdas,sizes = FMR$params$sizes,margin = margin,asymptotic = asymptotic)
-      this.probs = prod(sapply(1:length(this.match),function(j){
-        FMR$error[[this.match[j]]]$approximate$probs[error.index[i,j]]
-      }))
-      this.error = this.rec$profile
-      this.error$probs = this.error$probs*this.probs
-      return(this.error)
-    }))
-    rec$probs = rec$probs/sum(rec$probs)
-    rec.moments = compoundNormalMoments(probs = rec$probs,means = rec$x,vars = rec$var)
-    this.ace = data.frame(node=n,label = FMR$phy$node.label[n-Ntip(FMR$phy)],
-                          x = unname(rec.moments[1]),
-                          var = unname(rec.moments[2]),
-                          stringsAsFactors = FALSE)
-    return(list(error=rec,ace=this.ace))
-  }
-  global.ace = mclapply((1:Nnode(FMR$phy))+Ntip(FMR$phy),global.func,FMR=FMR,mc.cores = numCores)
-  global.error = lapply(global.ace,function(x){x$error})
-  global.ace = do.call(rbind,lapply(global.ace,function(x){x$ace}))
-  if(add.epsilon){
-    global.ace$var = global.ace$var +FMR$params$epsilon/2
-    if(numApprox>1&laplace){
-      global.error = lapply(global.error,function(x){
-        return(data.frame(x=c(x$x,x$x),
-                          var=c(x$var+FMR$params$epsilon/2*exp(-1),x$var+FMR$params$epsilon/2*exp(1)),
-                          probs=c(x$probs*exp(1)/(1+exp(1)),x$probs/(1+exp(1)))))
-      })
-    }else{
-      for(n in 1:Nnode(FMR$phy)){
-        global.error[[n]]$var = global.error[[n]]$var+FMR$params$epsilon/2
-      }
-    }
-  }
-  return(list(ace=global.ace,error= global.error))
-}
-#' @export
+#' @rdname fullMarginalReconstructionWithPE
 fullMarginalReconstructionWithPE = function(phy,x,params,laplace=FALSE,approximate=1,margin=1e-6,numCores=1,asymptotic=5){
   # check if the phylogeny is a rooted, bifurcating tree
   if(!is.binary.phylo(phy)) stop("The phylogeny should be bifurcating!")
@@ -399,39 +249,4 @@ fullMarginalReconstructionWithPE = function(phy,x,params,laplace=FALSE,approxima
   }
   return(list(phy=phy,marginal = mrtv,error=error.marginal,params=list(lambdas=lambdas,sizes=sizes,sigma=sigma,epsilon=epsilon)))
 }
-#' @export
-discretizeResult = function(res,error=NULL,epsilon=0,laplace=FALSE){
-  new.res = lapply(1:dim(res)[1],function(i){
-    df = data.frame(node=res$node[i],label=res$label[i],x=round(res$x[i]))
-    if(laplace){
-      if(is.null(error)){
-        df$probs = sapply(res$var,function(x){pconv.norm.laplace(q = 0.5,sigma = x,epsilon = epsilon/2)})-
-          sapply(error,function(x){pconv.norm.laplace(q = -0.5,sigma = x,epsilon = epsilon/2)})
-      }else{
-        df$probs = pMixNormalLaplace(q = round(res$x[i])+0.5,mean = error[[i]]$x,
-                              sd = sqrt(error[[i]]$var),laplace.var = epsilon/2,probs = error[[i]]$probs)-
-          pMixNormalLaplace(q = round(res$x[i])-0.5,mean = error[[i]]$x,
-                     sd = sqrt(error[[i]]$var),laplace.var = epsilon/2,probs = error[[i]]$probs)
-      }
-    }else{
-      if(is.null(error)){
-        df$probs = pnorm(q = round(res$x[i])+0.5,mean = res$x[i],sd = sqrt(res$var[i]+epsilon/2))-
-          pnorm(q = round(res$x[i])-0.5,mean = res$x[i],sd = sqrt(res$var[i]+epsilon/2))
-      }else{
-        df$probs = pMixNormal(q = round(res$x[i])+0.5,mean = error[[i]]$x,
-                              sd = sqrt(error[[i]]$var+epsilon/2),probs = error[[i]]$probs)-
-          pMixNormal(q = round(res$x[i])-0.5,mean = error[[i]]$x,
-                     sd = sqrt(error[[i]]$var+epsilon/2),probs = error[[i]]$probs)
-      }
-    }
-    return(df)
-  })
-  new.res = do.call(rbind,new.res)
-  return(new.res)
-}
-#' @export
-convert.pulsR.parameters = function(params){
-  new.params = c(params[2],params[c(3,1,10)]^2)*c(1,1,1,2)
-  names(new.params) = c("lambda","size","sigma","epsilon")
-  return(new.params)
-}
+
