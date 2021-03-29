@@ -45,8 +45,9 @@ print(c(BM=mean(abs(bm.error)),PE=mean(abs(pe.error))))
 ###       BM       PE 
 ### 3.258241 3.156028 
 
-# how normal are Z-scores?
+# Which model provide more normal Z-scores? Use D statistic in the KS-test to compare.
 bm.D = analyzeResidualErrorByPPplot(trait = trait[tree$tip.label],pred = bm.cv$x,error = bm.cv$var,epsilon = 0,laplace = FALSE)
 pe.D = analyzeResidualErrorByPPplot(trait = trait[tree$tip.label],pred = pe.cv$cv$x,error = pe.cv$error,epsilon = pe.fmr$params$epsilon,laplace = FALSE)
-print(c(BM=bm.D,PE=pe.D))
-##
+print(c(BM=unname(bm.D),PE=unname(pe.D)))
+###         BM         PE 
+### 0.08680844 0.02119105 
