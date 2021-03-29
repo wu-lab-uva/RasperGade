@@ -45,7 +45,7 @@ Extant trait values should be in a named numeric vector, and the names should co
 Tips should have unique labels, and if nodes have labels, they should be unique.
 
 ## Demo
-
+A small example is provided under the folder `Demo`
 
 ## Reproduction of results in the preprint
 To reproduce the results in the preprint, follow the instrucitons in `Preprint2021/Instruction.txt`
