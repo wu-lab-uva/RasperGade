@@ -2,19 +2,18 @@ Package: RasperGade
 Title: Reconstructing Ancestral State under Pulsed Evolution in R by Gaussian Decomposition
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Yingnan",
+           family = "Gao",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+           email = "yg5ap@virginia.edu",
+           comment = c(ORCID = "0000-0002-0960-4519"))
+Description: RasperGade accounts for both time-independent variation and pulsed evolution by extending Felsenstein's recursive reconstruction method in ancestral and hidden state prediction. It can fit the pulsed evolution model given extant trait value and a phylogeny, reconstruct ancestral states or predict hidden states, and evaluate the quality of predicted ancestral and hidden states.
 Depends:
         ape,
         bbmle,
         doParallel,
         pracma
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
