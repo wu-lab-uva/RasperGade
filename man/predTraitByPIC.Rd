@@ -9,12 +9,15 @@ predTraitByPIC(phy, trait, rate = 1)
 \arguments{
 \item{phy}{phylo-class object from \code{ape} package}
 
-\item{trait}{named vector of tip trait values; names should match the tip labels; hidden states to be predicted have NA values}
+\item{trait}{named vector of tip trait values; names should match the tip labels; missing values are hidden states}
 
 \item{rate}{the rate of BM}
 }
+\value{
+a data frame listing the means and variances of the hidden states
+}
 \description{
-Reconstruct marginal ancestral state using immediate descendants under BM or pulsed evolution model
+Predict hidden state under the BM model given a phylogeny, some known states, and the rate of BM
 }
 \details{
 this function is modified from the function in \code{picante} package
