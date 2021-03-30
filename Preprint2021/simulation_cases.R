@@ -13,9 +13,10 @@ save.name = arg[3]
 # test on normal distribution only
 laplace=FALSE
 #
-epsilons=c(0)
-lambdas = c(5)
-contributions = rev(c(0,0.1,0.3,0.5,0.7,0.9,0.999))
+epsilons= as.numeric(arg[4])
+lambdas = as.numeric(arg[5])
+contributions = as.numeric(arg[6])
+if(any(is.na(c(epsilons,lambdas,contributions)))) stop("Model parameters cannot be NA")
 replicates = 1:100
 pars = expand.grid(epsilons,lambdas,contributions,replicates)
 total.rate = 1
@@ -40,7 +41,7 @@ all.asr = mclapply(1:dim(pars)[1],function(i){
   ASR = globalReconstructionWithPE(FMR = FMR,add.epsilon = FALSE,numCores = 1,laplace = laplace)
   t1 = Sys.time()
   asr.res[[2]] = list(FMR=FMR,trait=trait,CV=CV,ASR=ASR,t = c(t0,t1))
-  saveRDS(asr.res,paste0(save.name,".PE.",i,".RDS"))
+  saveRDS(asr.res,paste0(save.name,".",i,".RDS"))
   return(asr.res)
 },mc.cores = numCores)
 #

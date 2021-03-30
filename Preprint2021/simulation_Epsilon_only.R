@@ -13,10 +13,10 @@ save.name = arg[3]
 # test on normal distribution only
 laplace=FALSE
 #
-epsilons=c(0)
+epsilons=c(0,1,10)
 lambdas = c(5)
-contributions = rev(c(0,0.1,0.3,0.5,0.7,0.9,0.999))
-replicates = 1:100
+contributions = rev(c(0))
+replicates=1:100
 pars = expand.grid(epsilons,lambdas,contributions,replicates)
 total.rate = 1
 all.asr = mclapply(1:dim(pars)[1],function(i){
@@ -33,6 +33,7 @@ all.asr = mclapply(1:dim(pars)[1],function(i){
                       ASR=continuousAceByPIC(x = trait[tree$tip.label],phy = tree,rate = bm.rate)))
   t1 = Sys.time()
   asr.res[[1]]$t= c(t0,t1)
+  saveRDS(asr.res,paste0(save.name,".epsilon.",i,".RDS"))
   t0 = Sys.time()
   FMR = fullMarginalReconstructionWithPE(phy = tree,x = trait[tree$tip.label],params = model.params,
                                          laplace = laplace,approximate = 1,numCores = 1,asymptotic=5)
@@ -40,7 +41,9 @@ all.asr = mclapply(1:dim(pars)[1],function(i){
   ASR = globalReconstructionWithPE(FMR = FMR,add.epsilon = FALSE,numCores = 1,laplace = laplace)
   t1 = Sys.time()
   asr.res[[2]] = list(FMR=FMR,trait=trait,CV=CV,ASR=ASR,t = c(t0,t1))
-  saveRDS(asr.res,paste0(save.name,".PE.",i,".RDS"))
+  saveRDS(asr.res,paste0(save.name,".epsilon.",i,".RDS"))
   return(asr.res)
 },mc.cores = numCores)
 #
+
+

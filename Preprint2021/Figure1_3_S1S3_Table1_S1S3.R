@@ -1,36 +1,22 @@
 #
-source("fitPE_functions.R")
-source("RasperGade_reconstruction.R")
-source("RasperGade_diagnosis.R")
+library(RasperGade)
 library(ggplot2)
 library(ggpubr)
-# find representative from simulated data
-epsilons=c(0,1,10)
-contributions = rev(c(0,0.1,0.3,0.5,0.7,0.9,1))
-replicates = 1:20
-batch = 1:5
-pars.epsilon = expand.grid(epsilon=epsilons,lambda=5,contribution=0.9,rep=replicates,batch=batch,KEEP.OUT.ATTRS = FALSE)
-pars.epsilon$id = rep(1:(dim(pars.epsilon)[1]/length(unique(pars.epsilon$batch))),length(unique(pars.epsilon$batch)))
-pars.contribution = expand.grid(epsilon=10,lambda=5,contribution=contributions,rep=replicates,batch=batch,KEEP.OUT.ATTRS = FALSE)
-pars.contribution$id = rep(1:(dim(pars.contribution)[1]/length(unique(pars.contribution$batch))),length(unique(pars.contribution$batch)))
-pars.bm = expand.grid(rate=1,batch=1,id=1:100)
 # set up file path
-rep.file.idx = list(1:100,
-                    which(pars.contribution[,3]==0),
-                    which(pars.epsilon[,1]==0),
-                    which(pars.contribution[,3]==0.9))
-rep.folder = list("simulation_BM",
-                  "simulation_contribution",
-                  "simulation_Epsilon",
-                  "simulation_contribution")
-rep.prefix = list("bac.simulation.BM",
-                  "bac.simulation.simulation.PE",
-                  "bac.simulation.simulation.epsilon",
-                  "bac.simulation.simulation.PE")
+rep.file.idx = list(1:100,1:100,1:100,1:100)
+rep.folder = list("Result/Scheme1/",
+                  "Result/Scheme1/",
+                  "Result/Scheme1/",
+                  "Result/Scheme1/")
+rep.prefix = list("Scheme1.BM_",
+                  "Scheme1.BME_",
+                  "Scheme1.PEBM_",
+                  "Scheme1.PEBME_")
 rep.pars = list(pars.bm,pars.contribution,pars.epsilon,pars.contribution)
+#
 trait.label = c(expression("BM"),expression("BM+"*epsilon),expression("BM+PE"),expression("BM+PE+"*epsilon))
 # read in expected statistics
-stat.expectation = readRDS("stat.expectation.RDS")
+stat.expectation = readRDS("Result/stat.expectation.RDS")
 # read in data
 all.asr = lapply(1:length(rep.file.idx),function(i){
   this.res = lapply(rep.file.idx[[i]],function(idx){
@@ -273,7 +259,7 @@ PEBME.Z.plot = lapply(1:length(PEBME.pZ),function(i){
   ggplot()+geom_point(mapping = aes(x=se,y = Z),data = df,alpha=0.5,shape=".")+
     geom_hline(yintercept = 2,col="red",size=ref.size,linetype="dashed",alpha=0.6)+
     geom_hline(yintercept = -2,col="red",size=ref.size,linetype="dashed",alpha=0.6)+
-    coord_cartesian(ylim = c(-6,6),
+    coord_cartesian(ylim = c(-10,10),
                     xlim=c(10^(floor(2*log10(min(df$se)))/2),10^(ceiling(2*log10(max(df$se)))/2)))+
     scale_x_continuous(trans = "log10",breaks=c(1e-4,0.001,0.01,0.1,1,10),
                        labels = c(expression(10^-4),expression(10^-3),expression(10^-2),expression(10^-1),expression(10^0),expression(10^1)))+
@@ -465,11 +451,11 @@ ASR.PEBME.Z.plot = lapply(1:length(ASR.PEBME.pZ),function(i){
   ggplot()+geom_point(mapping = aes(x=se,y = Z),data = df,alpha=0.5,shape=".")+
     geom_hline(yintercept = 2,col="red",size=ref.size,linetype="dashed",alpha=0.6)+
     geom_hline(yintercept = -2,col="red",size=ref.size,linetype="dashed",alpha=0.6)+
-    coord_cartesian(ylim = c(-6,6),
+    coord_cartesian(ylim = c(-20,20),
                     xlim=c(10^(floor(2*log10(min(df$se)))/2),10^(ceiling(2*log10(max(df$se)))/2)))+
     scale_x_continuous(trans = "log10",breaks=c(1e-4,0.001,0.01,0.1,1,10),
                        labels = c(expression(10^-4),expression(10^-3),expression(10^-2),expression(10^-1),expression(10^0),expression(10^1)))+
-    scale_y_continuous(breaks = seq(-10,10,2))+
+    scale_y_continuous(breaks = seq(-20,20,4))+
     ggtitle(trait.label[i+1])+xlab("Predicted SE")+ylab("Pseudo-Z-score")+
     theme(legend.position = "none",
           panel.background = element_blank(),

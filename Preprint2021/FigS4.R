@@ -1,10 +1,5 @@
 #
-setwd("F:/Dropbox/Scripts/16S_Copy_Number/Version3/")
-source("fitPE_functions.R")
-setwd("F:/Dropbox/Scripts/16S_Copy_Number/Version4/")
-source("RasperGade_reconstruction.R")
-source("RasperGade_diagnosis.R")
-setwd("F:/Dropbox/Scripts/16S_Copy_Number/20210302/")
+library(RasperGade)
 library(ggplot2)
 library(ggpubr)
 #
