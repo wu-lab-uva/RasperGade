@@ -1,4 +1,17 @@
+#' @title  Leave-one-out cross-validation under pulsed evolution model
+#'
+#' @description Predict hidden states under the pulsed evolution model in a leave-one-out cross-validation
+#'
+#' @param FMR the returned data structure from function `fullMarginalReconstructionWithPE`
+#' @param add.epsilon logical, if true, time-independent variation is added to the variance in the data frame
+#' @param laplace logical, if true, Laplace distribution is used for time-independent variation
+#' @param numApprox the number of normal distributions to approximate the Laplace distribution
+#' @param margin the total probability mass that the number of jumps omitted in a compound Poisson process
+#' @param numCores the number of cores to run in parallel
+#' @param asymptotic the threshold of expected number of jumps on a branch beyond which normal distribution is assumed
+#' @return a data frame listing the means and variances of the hidden states, and a list that describes the detailed error distribution of them
 #' @export
+#' @rdname crossValidationWithPE
 crossValidationWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,margin=1e-6,numCores=1,asymptotic=5){
   cat("Conducting leave-one-out cross validation...\n")
   # the internal function to predict hidden states for each tip

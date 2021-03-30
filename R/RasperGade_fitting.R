@@ -1,6 +1,9 @@
 #' @import bbmle
 #' @import doParallel
+#' @title  Find only tip-pair contrasts in a tree
+#' @description  Find only tip-pair contrasts in a tree for a reconstruction-free analysis
 #' @export
+#' @rdname findTerminalPIC
 findTerminalPIC = function (phy, x, remove.zero = FALSE) {
   # add node labels if not already exist
   if (is.null(phy$node.label))
@@ -39,7 +42,10 @@ findTerminalPIC = function (phy, x, remove.zero = FALSE) {
   }
 }
 
+#' @title  Reconstruct ancestral states under BM and time-independent variation
+#' @description  Reconstruct ancestral states under BM and time-independent variation for optimization of model parameters
 #' @export
+#' @rdname reconstructAncestralStates
 reconstructAncestralStates = function(phy,x,rate,epsilon){
   # pre-allocate ancestral states and their corresponding variance
   trait = c(x[phy$tip.label],numeric(phy$Nnode))
@@ -76,70 +82,10 @@ reconstructAncestralStates = function(phy,x,rate,epsilon){
   return(list(trait=trait,var=trait.var,contrast=dx,l = dl,epsilon=de,lprime=dl*rate+de))
 }
 
+#' @title  Wrapper function for optimization
+#' @description  Fit pulsed evolution with reliable results
 #' @export
-pseudo.pic = function(phy,x,pfunc,params){
-  # get the number of Poisson processes
-  numPE = length(params)/2-1
-  # calculate the total evolution rate (variance of trait change per unit branch length)
-  rate = sum(sapply(1:numPE,function(i){
-    prod(params[-1:0 + 2*i])
-  }))+params[length(params)-1]
-  # reconstruct ancestral states
-  epsilon = params[length(params)]
-  anc = reconstructAncestralStates(phy = phy,x=x,rate= rate,epsilon=epsilon)
-  # calculate the cumulative probability of trait differences between nodes under the distribution defined by pfunc
-  pp = sapply(1:length(anc$contrast),function(i){
-    do.call(pfunc,c(list(q=anc$contrast[i],t=anc$l[i],epsilon=anc$epsilon[i]),as.list(params[-length(params)])))
-  })
-  # transform trait differences into normal quantiles (pseudo-PIC)
-  p.pic = qnorm(p = pp)
-  return(p.pic)
-}
-
-#' @export
-get.params = function(x){x$params}
-
-#' @export
-get.AIC = function(x){x$AIC}
-
-#' @export
-total.process.variance = function(params){
-  # number of Poisson processes
-  numPE = length(params)/2-1
-  # process variance of each Poisson process
-  process.variance = sapply(1:numPE,function(i){
-    params[2*i-1]*params[2*i]
-  })
-  # the total process variance
-  return(sum(process.variance)+params[2*numPE+1])
-}
-
-#' @export
-initialize.parameters = function(x,size.ratio){
-  numPE = length(x)/2-1
-  for(i in seq(numPE,2,-1)){
-    x[paste0("size",i)]=x[paste0("size",i-1)]/x[paste0("size",i)]-size.ratio
-  }
-  return(as.list(log(x)))
-}
-
-#' @export
-initialize.parameters.SP = function(x,...){as.list(log(x))}
-
-#' @export
-initialize.parameters.MP = function(x,...){
-  x["size2"]=x["size1"]/x["size2"]-size.ratio
-  return(as.list(log(x)))
-}
-
-#' @export
-initialize.parameters.TP = function(x,...){
-  x["size3"]=x["size2"]/x["size3"]-size.ratio
-  x["size2"]=x["size1"]/x["size2"]-size.ratio
-  return(as.list(log(x)))
-}
-
-#' @export
+#' @rdname fitModel2Step
 fit.model.byNM.2step = function(fit.func="mle2",start.params,params1,params2,
                                 AIC.func="AIC",params.func=function(x){x@coef},ini.func="as.list",
                                 AIC.cutoff=2,...){
@@ -159,6 +105,7 @@ fit.model.byNM.2step = function(fit.func="mle2",start.params,params1,params2,
 }
 
 #' @export
+#' @rdname fitModel2Step
 fit.model.byNM = function(fit.func="mle2",start.params,params,
                           AIC.func="AIC",params.func=function(x){x@coef},ini.func="as.list",
                           AIC.cutoff=2,...){
@@ -196,8 +143,15 @@ fit.model.byNM = function(fit.func="mle2",start.params,params,
   return(list(AIC = currentAIC,params=current.params,full=res))
 }
 
-
+#' @title  Fit pulsed evolution model
+#'
+#' @description  Fit pulsed evolution model in a maximum-likelihood framework
+#'
+#' @param phy a phylo-class object from the `ape` package
+#' @param x trait change in `fitPE` and tip trait values in `fitPE.phy`
+#' @param l branch length of time/divergence
 #' @export
+#' @rdname fitPE
 fitPE = function(x,l,start.value=NULL,numCores=1,fixed=list(),laplace=TRUE,eval.only=FALSE,reltol=sqrt(.Machine$double.eps),...){
   # set the probability function to use
   if(laplace){
@@ -273,6 +227,7 @@ fitPE = function(x,l,start.value=NULL,numCores=1,fixed=list(),laplace=TRUE,eval.
 }
 
 #' @export
+#' @rdname fitPE
 fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=TRUE,
                      laplace=TRUE,eval.only=FALSE,bootstrap=NULL,reltol=sqrt(.Machine$double.eps),...){
   # initialize node indexes if not supplied
@@ -361,84 +316,3 @@ fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=
   return(list(params=res,AIC=AIC(result),raw= result))
 }
 
-#' @export
-# introduced by different processes
-simulatePET = function(l,align.length=NA,lambda,size,sigma,epsilon,nj=NULL){
-  # get the number of trait changes to simulate
-  n = length(l)
-  # adjust branch length if necessary (not used)
-  if(is.na(align.length)){
-    t=l
-  }else{
-    t = rgamma(n=n,shape=l*align.length+1,scale = 1/align.length)
-  }
-  # generate random number of jumps
-  if(is.null(nj)) nj = rpois(n = n,lambda = lambda*t)
-  # generate random trait change by each process
-  dxbm = rnorm(n=n)*sqrt(t*sigma)
-  dxpe = rnorm(n=n)*sqrt(nj*size)
-  ep = runif(n = n)
-  ebm = qnorm(p =ep)*sqrt(epsilon)
-  elaplace = qlaplace(p = ep)*sqrt(epsilon/4)
-  return(list(l = l, t = t,nj=nj,
-              dxbm = dxbm, dxpe = dxpe,
-              ep=ep,ebm = ebm, elaplace = elaplace))
-}
-
-#' @export
-simulatePET.phy = function(phy,lambda,size,sigma,epsilon,start=0){
-  # initialize trait values
-  trait.sim = numeric(length = Ntip(phy)+Nnode(phy))+start
-  # set node labels if not already exist
-  if(is.null(phy$node.label)){
-    names(trait.sim) = c(phy$tip.label,as.character(Ntip(phy)+(1:phy$Nnode)))
-  }else{
-    names(trait.sim) = c(phy$tip.label,phy$node.label)
-  }
-  # reorder edges for root-to-tip simulation
-  phy = reorder.phylo(phy,order = "postorder")
-  # simulate trait changes between nodes
-  trait.delta = simulatePET(l = phy$edge.length,lambda = lambda,size=size,sigma = sigma,epsilon = epsilon)
-  # add up trait changes to get trait values from root to tip
-  for(i in 1:length(phy$edge.length)){
-    l = length(phy$edge.length)+1-i
-    trait.sim[phy$edge[l,2]] = trait.sim[phy$edge[l,1]] + trait.delta$dxbm[l] + trait.delta$dxpe[l]
-    # add time-independent variation for tips
-    if(phy$edge[l,2]<=Ntip(phy)) trait.sim[phy$edge[l,2]] = trait.sim[phy$edge[l,2]] + trait.delta$elaplace[l]
-  }
-  return(trait.sim)
-}
-
-#' @export
-summarize.model.parameter = function(params,time=2000,scale=1){
-  # get the number of Poisson processes
-  numPE = length(params)/2-1
-  # correct for scaling
-  unscale.coef = rep(scale,length(params))
-  unscale.coef[2*(1:numPE)-1] = 1
-  unscale.params = params/unscale.coef
-  # calculating average waiting time
-  wait.time = sapply(1:numPE,function(i){
-    unname(time/params[2*i-1])
-  })
-  # calculate relative jump size
-  relative.size = sapply(1:numPE,function(i){
-    sqrt(unname(params[2*i]/params[2*numPE+2]))
-  })
-  # calculate jump rate per unit time
-  jump.rate = 1/wait.time
-  # calculate process variance (trait change variance per unit branch length)
-  process.variance = sapply(1:numPE,function(i){
-    params[2*i-1]*params[2*i]
-  })
-  # calculate relative contribution
-  contribution = sapply(1:numPE,function(i){
-    process.variance[i]/(sum(process.variance)+params[2*numPE+1])
-  })
-  return(list(summary=data.frame(time=wait.time,rate=jump.rate,size=relative.size,contribution = contribution),params=unscale.params))
-}
-
-#' @export
-normalize.AIC = function(AIC,scale=1,sample.size=6667){
-  return(AIC-log(scale)*sample.size)
-}

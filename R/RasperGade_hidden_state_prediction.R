@@ -1,10 +1,11 @@
 #' @title  Predict hidden state under the BM model
 #'
-#' @description Reconstruct marginal ancestral state using immediate descendants under BM or pulsed evolution model
+#' @description Predict hidden state under the BM model given a phylogeny, some known states, and the rate of BM
 #'
-#' @param trait named vector of tip trait values; names should match the tip labels; hidden states to be predicted have NA values
+#' @param trait named vector of tip trait values; names should match the tip labels; missing values are hidden states
 #' @param phy phylo-class object from `ape` package
 #' @param rate the rate of BM
+#' @return a data frame listing the means and variances of the hidden states
 #' @details this function is modified from the function in `picante` package
 #' @export
 #' @rdname predTraitByPIC

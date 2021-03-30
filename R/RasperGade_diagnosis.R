@@ -1,20 +1,6 @@
 #' @import pracma
-#' @export
-logitSigmoid=function(x,p){
-  sapply(x,function(xx){
-    if(is.na(xx)|is.nan(xx)|is.nan(p)|is.na(p)) return(NA)
-    logit.x = logit(x = xx,a = 1,b = -logit(p))
-    trans.x = sigmoid(logit.x)
-  })
-}
-#' @export
-reverse.logitSigmoid=function(x,p){
-  sapply(x,function(xx){
-    if(is.na(xx)|is.nan(xx)|is.nan(p)|is.na(p)) return(NA)
-    logit.x = logit(x = xx,a = 1,b = logit(p))
-    trans.x = sigmoid(logit.x)
-  })
-}
+
+#' @title  Calculate RSS
 #' @export
 calculateBinomRSS = function(p,obs,group=NULL,bin=20,...){
   if(is.null(group)){
@@ -46,6 +32,8 @@ calculateBinomRSS = function(p,obs,group=NULL,bin=20,...){
   }
   return(this.rss)
 }
+
+#' @title  Calculate median Chi-square
 #' @export
 calculateHeteroscedasticity = function(x,y,bin=100,n=1000){
   idx = sort(y,index.return=TRUE)$ix
@@ -56,6 +44,8 @@ calculateHeteroscedasticity = function(x,y,bin=100,n=1000){
   h = fligner.test(x = vars)
   return(c(h=h$statistic,p.value=h$p.value))
 }
+
+#' @title  Calculate tolerance-based inclusion/exclusion
 #' @export
 calculateExclusion = function(pred,error,epsilon=0,tolerance,alpha=0.05,laplace=FALSE,discrete=FALSE){
   if(discrete){
@@ -91,6 +81,8 @@ calculateExclusion = function(pred,error,epsilon=0,tolerance,alpha=0.05,laplace=
   }
   return(list(p=prob.within.range, decision=prob.within.range < (1-alpha)))
 }
+
+#' @title  Check if exclusion/inclusion are correct
 #' @export
 checkExclusion = function(obs,pred,tolerance,discrete=FALSE){
   if(discrete){
@@ -99,6 +91,8 @@ checkExclusion = function(obs,pred,tolerance,discrete=FALSE){
   }
   return(abs(obs-pred) > tolerance)
 }
+
+#' @title  Calcualte the error rate
 #' @export
 calculateExclusionErrorRate = function(obs,pred,error,epsilon=0,tolerance,alpha=0.05,laplace=FALSE,discrete=FALSE){
   observed.exclusion = checkExclusion(obs,pred,tolerance,discrete)
@@ -119,7 +113,20 @@ calculateExclusionErrorRate = function(obs,pred,error,epsilon=0,tolerance,alpha=
           FRR=sum(observed.exclusion&(!predicted.exclusion))/sum(!predicted.exclusion))
   return(list(obs=observed.exclusion,pred=predicted.exclusion,error=errors,expect=expected.errors,rate=rates))
 }
+
+#' @title  Analyze quality of uncertainty in ancestral or hidden state prediction
+#'
+#' @description  Analyze quality of uncertainty in ancestral or hidden state prediction from different perspectives
+#'
+#' @param trait true trait values
+#' @param pred point estimates of ancestral or hidden states
+#' @param error uncertainty of predictions
+#' @param epsilon variance of time-independent variation
+#' @param laplace logical, if true, time-independent variation follows a Laplace distribution
+#' @param discrete logical, if true, results should be analyzed as integers
+#' @param bin number of bins in the test
 #' @export
+#' @rdname analyzeResidualError
 analyzeResidualErrorByPPplot = function(trait,pred,error,epsilon=0,laplace=FALSE,discrete=FALSE,n=1000){
   if(is.null(epsilon)) epsilon=0
   if(discrete){
@@ -137,7 +144,9 @@ analyzeResidualErrorByPPplot = function(trait,pred,error,epsilon=0,laplace=FALSE
   }
   return(res)
 }
+
 #' @export
+#' @rdname analyzeResidualError
 analyzeResidualErrorByHeteroscedasticity = function(trait,pred,error,epsilon=0,laplace=FALSE,bin=100,n=1000){
   if(is.null(epsilon)) epsilon=0
   pZ = pseudo.Z.score(trait,pred,error,epsilon,laplace)
@@ -149,7 +158,9 @@ analyzeResidualErrorByHeteroscedasticity = function(trait,pred,error,epsilon=0,l
   rss = calculateHeteroscedasticity(x = pZ$q,y = error.as.var,bin = bin,n = n)
   return(rss)
 }
+
 #' @export
+#' @rdname analyzeResidualError
 analyzeResidualErrorByCI = function(trait,pred,error,epsilon=0,laplace=FALSE,bin=20,alpha=0.05){
   if(is.null(epsilon)) epsilon=0
   pZ = pseudo.Z.score(trait,pred,error,epsilon,laplace)
@@ -160,56 +171,4 @@ analyzeResidualErrorByCI = function(trait,pred,error,epsilon=0,laplace=FALSE,bin
   }
   rss = calculateBinomRSS(p = rep(alpha,length(error.as.var)),obs = (sapply(pZ$p,function(x){min(x,1-x)})<(alpha/2)),group = log(error.as.var),bin = bin)
   return(rss)
-}
-#' @export
-pseudo.Z.score = function(trait,pred,error,epsilon=0,laplace=FALSE){
-  pZ = sapply(1:length(pred),function(i){
-    if(is.list(error)){
-      if(laplace){
-        pp = pMixNormalLaplace(q = trait[i],mean = error[[i]]$x,sd = sqrt(error[[i]]$var),
-                               probs = error[[i]]$probs,laplace.var = epsilon/2)
-      }else{
-        pp = pMixNormal(q = trait[i],mean = error[[i]]$x,
-                        sd = sqrt(error[[i]]$var+epsilon/2),probs = error[[i]]$probs)
-      }
-    }else{
-      if(laplace){
-        pp = pconv.norm.laplace(q = trait[i]-pred[i],sigma = error[i],epsilon = epsilon/2)
-      }else{
-        pp = pnorm(q = trait[i],mean = pred[i],sd = sqrt(error[i]+epsilon/2))
-      }
-    }
-    return(pp)
-  })
-  return(list(p=pZ,q=qnorm(pZ)))
-}
-#' @export
-discretizeResult = function(res,error=NULL,epsilon=0,laplace=FALSE){
-  new.res = lapply(1:dim(res)[1],function(i){
-    df = data.frame(node=res$node[i],label=res$label[i],x=round(res$x[i]))
-    if(laplace){
-      if(is.null(error)){
-        df$probs = sapply(res$var,function(x){pconv.norm.laplace(q = 0.5,sigma = x,epsilon = epsilon/2)})-
-          sapply(error,function(x){pconv.norm.laplace(q = -0.5,sigma = x,epsilon = epsilon/2)})
-      }else{
-        df$probs = pMixNormalLaplace(q = round(res$x[i])+0.5,mean = error[[i]]$x,
-                                     sd = sqrt(error[[i]]$var),laplace.var = epsilon/2,probs = error[[i]]$probs)-
-          pMixNormalLaplace(q = round(res$x[i])-0.5,mean = error[[i]]$x,
-                            sd = sqrt(error[[i]]$var),laplace.var = epsilon/2,probs = error[[i]]$probs)
-      }
-    }else{
-      if(is.null(error)){
-        df$probs = pnorm(q = round(res$x[i])+0.5,mean = res$x[i],sd = sqrt(res$var[i]+epsilon/2))-
-          pnorm(q = round(res$x[i])-0.5,mean = res$x[i],sd = sqrt(res$var[i]+epsilon/2))
-      }else{
-        df$probs = pMixNormal(q = round(res$x[i])+0.5,mean = error[[i]]$x,
-                              sd = sqrt(error[[i]]$var+epsilon/2),probs = error[[i]]$probs)-
-          pMixNormal(q = round(res$x[i])-0.5,mean = error[[i]]$x,
-                     sd = sqrt(error[[i]]$var+epsilon/2),probs = error[[i]]$probs)
-      }
-    }
-    return(df)
-  })
-  new.res = do.call(rbind,new.res)
-  return(new.res)
 }

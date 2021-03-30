@@ -1,4 +1,17 @@
+#' @title  Predict global ancestral state under the pulsed evolution model
+#'
+#' @description Predict global ancestral state under the pulsed evolution model given a phylogeny, known tip states, and model parameters
+#'
+#' @param FMR the returned data structure from function `fullMarginalReconstructionWithPE`
+#' @param add.epsilon logical, if true, time-independent variation is added to the variance in the data frame
+#' @param laplace logical, if true, Laplace distribution is used for time-independent variation
+#' @param numApprox the number of normal distributions to approximate the Laplace distribution
+#' @param margin the total probability mass that the number of jumps omitted in a compound Poisson process
+#' @param numCores the number of cores to run in parallel
+#' @param asymptotic the threshold of expected number of jumps on a branch beyond which normal distribution is assumed
+#' @return a data frame listing the means and variances of the ancestral states, and a list that describes the detailed error distribution of each ancestral state
 #' @export
+#' @rdname globalReconstructionWithPE
 globalReconstructionWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,margin=1e-6,numCores=1,asymptotic=5){
   cat("Reconstructing global ancestral states...\n")
   global.func = function(n,FMR){
@@ -49,11 +62,18 @@ globalReconstructionWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numAppr
   }
   return(list(ace=global.ace,error= global.error))
 }
+
+#' @title  Predict global ancestral state under the BM model
+#'
+#' @description Predict global ancestral state under the BM model given a phylogeny, known tip states, and the rate of BM
+#'
+#' @param x named vector of tip trait values; names should match the tip labels with no missing values
+#' @param phy phylo-class object from `ape` package
+#' @param rate the rate of BM
+#' @return a data frame listing the means and variances of the ancestral states
 #' @export
+#' @rdname continuousAceByPIC
 continuousAceByPIC = function(x,phy,rate=1){
-  # this function calculates the global ancestral state of all internal nodes by rerooting the tree
-  # it is the BM-ML solution to all ancestral states of internal nodes
-  #
   # initialize variables and node labels
   res = numeric(phy$Nnode)
   if(is.null(phy$node.label)){
