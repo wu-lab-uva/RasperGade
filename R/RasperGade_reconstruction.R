@@ -64,7 +64,11 @@ marginalReconstructionWithPE = function(x,l,lambdas,sizes,sigma,epsilons,margin=
   sumP = sum(profile$prior)
   if(sumP<0.99) warning("Total probability does not converge to one. Try decreasing margin.",immediate. = TRUE)
   profile$probs = profile$scale*profile$prior
-  profile$probs = profile$probs/sum(profile$probs)
+  if(sum(profile$probs)>0){
+    profile$probs = profile$probs/sum(profile$probs)
+  }else{
+    profile$probs = 1/length(profile$probs)
+  }
   meanX = sum(profile$x*profile$probs)
   varX = sum(profile$x^2*profile$probs) - meanX^2 + sum(profile$var*profile$probs)
   #
