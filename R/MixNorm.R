@@ -41,7 +41,12 @@ pMixNormal = function(q,mean,sd,probs,lower.tail=TRUE){
 #' @rdname MixNormal
 rMixNormal = function(n,mean,sd,probs){
   rr = sapply(1:n,function(i){
-    sample(x=rnorm(n = length(probs),mean = mean,sd = sd),size = 1,replace = TRUE,prob = probs)
+    this.x = rnorm(n = length(probs),mean = mean,sd = sd)
+    if(length(this.x)>1){
+      return(sample(x=this.x,size = 1,replace = TRUE,prob = probs))
+    }else{
+      return(this.x)
+    }
   })
   return(rr)
 }
