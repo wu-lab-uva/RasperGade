@@ -1,4 +1,5 @@
-#
+#' @export
+#' @rdname get_connected_nodes
 get_connected_nodes = function(tree,node,group){
   if(node<=Ntip(tree)) stop("Tips are not expected!")
   this.cluster = node
@@ -20,8 +21,9 @@ get_connected_nodes = function(tree,node,group){
   return(list(cluster=this.cluster,num.transition = num.transition,
               group = group[node],size=length(this.cluster)))
 }
-#
-#
+
+#' @export
+#' @rdname check_partition
 check_partition = function(tree,dAIC,group){
   remaining.nodes = unique(reorder.phylo(x = tree,order = "postorder",
                                          index.only = FALSE)$edge[,1])
@@ -38,7 +40,9 @@ check_partition = function(tree,dAIC,group){
   }
   return(clusters)
 }
-#
+
+#' @export
+#' @rdname partition_phylogeny
 partition_phylogeny_by_AIC_single = function(tree,dAIC,flip=FALSE){
   postorder.node = unique(reorder.phylo(x = tree,order = "postorder",
                                         index.only = FALSE)$edge[,1])
@@ -100,8 +104,8 @@ partition_phylogeny_by_AIC_single = function(tree,dAIC,flip=FALSE){
               num.transition = num.transition,
               dAIC=-sum(dAIC[all.group[Ntip(tree)+(1:Nnode(tree))]<0])+2*num.transition))
 }
-#
-#
+#' @export
+#' @rdname get_partition_AIC
 get_partition_AIC = function(tree,dAIC,group){
   postorder.node = unique(reorder.phylo(x = tree,order = "postorder",
                                         index.only = FALSE)$edge[,1])
@@ -112,7 +116,9 @@ get_partition_AIC = function(tree,dAIC,group){
     
   }
 }
-#
+
+#' @export
+#' @rdname refine_partition
 refine_partition = function(tree,dAIC,group){
   current.partition = check_partition(tree,dAIC,group)
   current.dAIC = sapply(current.partition,function(x){x$dAIC})
@@ -127,4 +133,3 @@ refine_partition = function(tree,dAIC,group){
   }
   return(list(group=group,partition=current.partition))
 }
-#
