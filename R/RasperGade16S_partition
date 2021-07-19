@@ -1,0 +1,130 @@
+#
+get_connected_nodes = function(tree,node,group){
+  if(node<=Ntip(tree)) stop("Tips are not expected!")
+  this.cluster = node
+  this.outline = setdiff(getConnected(tree,node),1:Ntip(tree))
+  while(length(this.outline)>0){
+    this.outline = this.outline[(group[this.outline]==group[node])&
+                                  (!this.outline%in%this.cluster)]
+    this.cluster = c(this.cluster,this.outline)
+    this.outline = do.call(c,lapply(this.outline,function(x){
+      setdiff(getConnected(phy=tree,x = x),1:Ntip(tree))}))
+  }
+  num.transition = sum(sapply(this.cluster,function(x){
+    this.parent = getLatestAncestor(phy = tree,x = x)
+    if(is.na(this.parent)) this.parent = x
+    this.des = getNextDescendants(phy = tree,x = x)
+    this.trans = as.numeric(!this.parent%in%this.cluster) +
+      sum(as.numeric(!this.des%in%c(this.cluster,1:Ntip(tree))))
+  }))
+  return(list(cluster=this.cluster,num.transition = num.transition,
+              group = group[node],size=length(this.cluster)))
+}
+#
+#
+check_partition = function(tree,dAIC,group){
+  remaining.nodes = unique(reorder.phylo(x = tree,order = "postorder",
+                                         index.only = FALSE)$edge[,1])
+  clusters = list()
+  numCluster = 1
+  while(length(remaining.nodes>0)){
+    clusters[[numCluster]] = get_connected_nodes(tree = tree,node = remaining.nodes[1],
+                                                group = group)
+    clusters[[numCluster]]$dAIC = sum(dAIC[clusters[[numCluster]]$cluster-Ntip(tree)])*
+      group[remaining.nodes[1]]+
+      2*clusters[[numCluster]]$num.transition
+    remaining.nodes = setdiff(remaining.nodes,clusters[[numCluster]]$cluster)
+    numCluster = numCluster + 1
+  }
+  return(clusters)
+}
+#
+partition_phylogeny_by_AIC_single = function(tree,dAIC,flip=FALSE){
+  postorder.node = unique(reorder.phylo(x = tree,order = "postorder",
+                                        index.only = FALSE)$edge[,1])
+  all.group = numeric(Ntip(tree)+Nnode(tree))+(2*(as.numeric(dAIC[1]<0))-1)
+  baseline.group = all.group
+  #
+  for(node in rev(postorder.node)){
+    node.only.idx = node - Ntip(tree)
+    this.des = getNextDescendants(tree,node)
+    null.model = baseline.group[node]
+    if((dAIC[node.only.idx]*null.model)>2){
+      all.group[node] = -null.model
+      all.group[this.des] = -null.model
+      baseline.group[this.des] = -null.model
+    }else{
+      all.group[node] = null.model
+      all.group[this.des] = null.model
+      baseline.group[this.des] = null.model
+    }
+  }
+  #
+  if(flip){
+    des.nodes = get_descendant_nodes_for_each_node(tree)
+    for(ii in 1:length(postorder.node)){
+      current.AIC = -sum(dAIC[all.group[Ntip(tree)+(1:Nnode(tree))]<0])+
+        2*sum(all.group!=baseline.group)
+      this.node = rev(postorder.node)[ii]
+      this.node.only.idx = this.node - Ntip(tree)
+      this.this.des = getNextDescendants(tree,this.node)
+      new.group = all.group
+      new.baseline.group = baseline.group
+      new.group[this.node] = -all.group[this.node]
+      new.baseline.group[this.this.des] = -all.group[this.node]
+      for(node in rev(postorder.node[postorder.node%in%des.nodes[[this.node]]])[-1]){
+        node.only.idx = node - Ntip(tree)
+        this.des = getNextDescendants(tree,node)
+        null.model = new.baseline.group[node]
+        if((dAIC[node.only.idx]*null.model)>2){
+          new.group[node] = -null.model
+          new.group[this.des] = -null.model
+          new.baseline.group[this.des] = -null.model
+        }else{
+          new.group[node] = null.model
+          new.group[this.des] = null.model
+          new.baseline.group[this.des] = null.model
+        }
+      }
+      new.AIC = -sum(dAIC[new.group[Ntip(tree)+(1:Nnode(tree))]<0])+
+        2*sum(new.group!=new.baseline.group)
+      if(new.AIC<current.AIC){
+        all.group = new.group
+        baseline.group = new.baseline.group
+      }
+    }
+  }
+  #
+  num.transition = sum(all.group!=baseline.group)
+  return(list(group=all.group,
+              num.transition = num.transition,
+              dAIC=-sum(dAIC[all.group[Ntip(tree)+(1:Nnode(tree))]<0])+2*num.transition))
+}
+#
+#
+get_partition_AIC = function(tree,dAIC,group){
+  postorder.node = unique(reorder.phylo(x = tree,order = "postorder",
+                                        index.only = FALSE)$edge[,1])
+  part.AIC = numeric(Nnode(tree))
+  part.AIC[1] = 1
+  for(node in rev(postorder.node)[-1]){
+    node.only.idx = node-Ntip(tree)
+    
+  }
+}
+#
+refine_partition = function(tree,dAIC,group){
+  current.partition = check_partition(tree,dAIC,group)
+  current.dAIC = sapply(current.partition,function(x){x$dAIC})
+  while(any(current.dAIC>0)){
+    this.cluster = current.partition[[which.max(current.dAIC)]]
+    group[this.cluster$cluster] = -this.cluster$group
+    group[1:Ntip(tree)] = sapply(1:Ntip(tree),function(i){
+      group[getLatestAncestor(phy = tree,x = i)]
+    })
+    current.partition = check_partition(tree,dAIC,group)
+    current.dAIC = sapply(current.partition,function(x){x$dAIC})
+  }
+  return(list(group=group,partition=current.partition))
+}
+#
