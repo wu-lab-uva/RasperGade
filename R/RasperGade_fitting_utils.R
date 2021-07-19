@@ -56,13 +56,15 @@ initialize.parameters.SP = function(x,...){as.list(log(x))}
 #' @description  Summarize fitted model for properly scaled AIC and parameters
 #' @export
 #' @rdname summarizeModel
-summarize.model.parameter = function(params,time=2000,scale=1){
+summarize.model.parameter = function(params,time=2000,scale=1,jitter=0,min.value=0){
   # get the number of Poisson processes
   numPE = length(params)/2-1
   # correct for scaling
   unscale.coef = rep(scale,length(params))
   unscale.coef[2*(1:numPE)-1] = 1
   unscale.params = params/unscale.coef
+  unscale.params["epsilon"] = max(min.value,unscale.params["epsilon"]-2*jitter)
+  unscale.params[unscale.params<min.value] = min.value
   # calculating average waiting time
   wait.time = sapply(1:numPE,function(i){
     unname(time/params[2*i-1])
