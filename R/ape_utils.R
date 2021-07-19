@@ -113,3 +113,20 @@ getConnected = function(phy,x){
   conn = c(phy$edge[phy$edge[,2]==x,1],phy$edge[phy$edge[,1]==x,2])
   return(conn)
 }
+
+get_descendant_tips_for_each_node = function(phy){
+  descendants = c(lapply(1:Ntip(phy),function(i){phy$tip.label[i]}),
+                  lapply(1:Nnode(phy),function(i){return(NA)}))
+  for(node in unique(reorder.phylo(phy,order = "postorder")$edge[,1])){
+    descendants[[node]] = do.call(c,descendants[getNextDescendants(phy,node)])
+  }
+  return(descendants)
+}
+get_descendant_nodes_for_each_node = function(phy){
+  descendants = c(lapply(1:Ntip(phy),function(i){numeric(0)}),
+                  lapply(1:Nnode(phy),function(i){Ntip(phy)+i}))
+  for(node in unique(reorder.phylo(phy,order = "postorder")$edge[,1])){
+    descendants[[node]] = do.call(c,descendants[c(node,getNextDescendants(phy,node))])
+  }
+  return(descendants)
+}
