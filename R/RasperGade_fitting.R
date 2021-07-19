@@ -152,13 +152,14 @@ fit.model.byNM = function(fit.func="mle2",start.params,params,
 #' @param l branch length of time/divergence
 #' @export
 #' @rdname fitPE
-fitPE = function(x,l,start.value=NULL,numCores=1,fixed=list(),laplace=TRUE,eval.only=FALSE,reltol=sqrt(.Machine$double.eps),...){
+fitPE = function(x,l,start.value=NULL,min.value = rep(0,4),numCores=1,fixed=list(),laplace=TRUE,eval.only=FALSE,reltol=sqrt(.Machine$double.eps),...){
   # set the probability function to use
   if(laplace){
     dfunc = dPEpoislaplace
   }else{
     dfunc = dPEpoisnorm
   }
+  min.value[-which(min.value>0)] = 0
   # set the likelihood function
   if(numCores>1){
     # Setup parallel backend to use many processors
@@ -170,20 +171,20 @@ fitPE = function(x,l,start.value=NULL,numCores=1,fixed=list(),laplace=TRUE,eval.
     registerDoParallel(cl)
     cat(sprintf("%d cluster registered\n",min(cores[1]-1,numCores)))
     LL = function(lambda,size,sigma,epsilon){
-      lambda= exp(lambda)
-      size = exp(size)
-      sigma=exp(sigma)
-      epsilon=exp(epsilon)
+      lambda= exp(lambda)+min.value[1]
+      size = exp(size)+min.value[2]
+      sigma=exp(sigma)+min.value[3]
+      epsilon=exp(epsilon)+min.value[4]
       pp = parSapply(cl,1:length(x),function(i){dfunc(x = x[i],t = l[i],lambda = lambda,size=size,sigma = sigma,epsilon=epsilon)})
       ll = -sum(log(pp))
       return(ll)
     }
   }else{
     LL = function(lambda,size,sigma,epsilon){
-      lambda= exp(lambda)
-      size = exp(size)
-      sigma=exp(sigma)
-      epsilon=exp(epsilon)
+      lambda= exp(lambda)+min.value[1]
+      size = exp(size)+min.value[2]
+      sigma=exp(sigma)+min.value[3]
+      epsilon=exp(epsilon)+min.value[4]
       pp = sapply(1:length(x),function(i){dfunc(x = x[i],t = l[i],lambda = lambda,size=size,sigma = sigma,epsilon=epsilon)})
       ll = -sum(log(pp))
       return(ll)
@@ -203,7 +204,7 @@ fitPE = function(x,l,start.value=NULL,numCores=1,fixed=list(),laplace=TRUE,eval.
   if(eval.only){
     res = exp(unlist(c(start.value,fixed)))
     names(res) = c(names(start.value),names(fixed))
-    res = res[c("lambda","size","sigma","epsilon")]
+    res = res[c("lambda","size","sigma","epsilon")]+min.value
     this.AIC = 2*do.call(LL,c(start.value,fixed))+2*length(start.value)
     if(numCores>1) stopCluster(cl)
     return(list(params=res,
@@ -220,7 +221,7 @@ fitPE = function(x,l,start.value=NULL,numCores=1,fixed=list(),laplace=TRUE,eval.
                           control = list(trace=TRUE,maxit=2000,reltol=reltol)
                    )))
   # transform the parameters back to the linear scale
-  res = exp(result@fullcoef)
+  res = exp(result@fullcoef)+min.value
   # stop parallel clusters
   if(numCores>1) stopCluster(cl)
   return(list(params=res,AIC=AIC(result),raw= result))
@@ -228,7 +229,7 @@ fitPE = function(x,l,start.value=NULL,numCores=1,fixed=list(),laplace=TRUE,eval.
 
 #' @export
 #' @rdname fitPE
-fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=TRUE,
+fitPE.phy = function(phy,x,start.value=NULL,min.value=rep(0,4),numCores=1,fixed=list(),ignore.zero=TRUE,
                      laplace=TRUE,eval.only=FALSE,bootstrap=NULL,reltol=sqrt(.Machine$double.eps),...){
   # initialize node indexes if not supplied
   if(is.null(bootstrap)) bootstrap = 1:phy$Nnode
@@ -241,6 +242,7 @@ fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=
   }else{
     dfunc = dPEpoisnorm
   }
+  min.value[-which(min.value>0)] = 0
   # set likelihood function
   if(numCores>1){
     # Setup parallel backend to use many processors
@@ -252,10 +254,10 @@ fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=
     registerDoParallel(cl)
     cat(sprintf("%d cluster registered\n",min(cores[1]-1,numCores)))
     LL = function(lambda,size,sigma,epsilon){
-      lambda= exp(lambda)
-      size = exp(size)
-      sigma=exp(sigma)
-      epsilon=exp(epsilon)
+      lambda= exp(lambda) + min.value[1]
+      size = exp(size) + min.value[2]
+      sigma=exp(sigma) + min.value[3]
+      epsilon=exp(epsilon) + min.value[4]
       rate = lambda*size+sigma
       anc = reconstructAncestralStates(phy = phy,x=x[phy$tip.label],rate = rate,epsilon = epsilon)
       pp = parSapply(cl,bootstrap,function(i){
@@ -266,10 +268,10 @@ fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=
     }
   }else{
     LL = function(lambda,size,sigma,epsilon){
-      lambda= exp(lambda)
-      size = exp(size)
-      sigma=exp(sigma)
-      epsilon=exp(epsilon)
+      lambda= exp(lambda) + min.value[1]
+      size = exp(size) + min.value[2]
+      sigma=exp(sigma) + min.value[3]
+      epsilon=exp(epsilon) + min.value[4]
       rate = lambda*size+sigma
       anc = reconstructAncestralStates(phy = phy,x=x[phy$tip.label],rate = rate,epsilon = epsilon)
       pp = sapply(bootstrap,function(i){
@@ -293,7 +295,7 @@ fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=
   if(eval.only){
     res = exp(unlist(c(start.value,fixed)))
     names(res) = c(names(start.value),names(fixed))
-    res = res[c("lambda","size","sigma","epsilon")]
+    res = res[c("lambda","size","sigma","epsilon")] + min.value
     this.AIC = 2*do.call(LL,c(start.value,fixed))+2*length(start.value)
     if(numCores>1) stopCluster(cl)
     return(list(params=res,
@@ -310,7 +312,7 @@ fitPE.phy = function(phy,x,start.value=NULL,numCores=1,fixed=list(),ignore.zero=
                           control = list(trace=TRUE,maxit=2000,reltol=reltol)
                    )))
   # transform model parameters back to the linear scale
-  res = exp(result@fullcoef)
+  res = exp(result@fullcoef)+min.value
   # stop parallel clusters
   if(numCores>1) stopCluster(cl)
   return(list(params=res,AIC=AIC(result),raw= result))
