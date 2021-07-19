@@ -56,7 +56,7 @@ getRoot = function(phy){
 #' @return The indices of the immediate descendants. If a tip is supplied, `NA`` will be returned.
 #' @seealso [getRoot][getAncestor][findSisters][getConnected]
 #' @export
-#' @rdname getNextDescendants
+#' @rdname getDescendants
 getNextDescendants = function (phy, x){
   if (x <= Ntip(phy))
     return(NA)
@@ -114,6 +114,8 @@ getConnected = function(phy,x){
   return(conn)
 }
 
+#' @export
+#' @rdname getDescendants
 get_descendant_tips_for_each_node = function(phy){
   descendants = c(lapply(1:Ntip(phy),function(i){phy$tip.label[i]}),
                   lapply(1:Nnode(phy),function(i){return(NA)}))
@@ -122,6 +124,9 @@ get_descendant_tips_for_each_node = function(phy){
   }
   return(descendants)
 }
+
+#' @export
+#' @rdname getDescendants
 get_descendant_nodes_for_each_node = function(phy){
   descendants = c(lapply(1:Ntip(phy),function(i){numeric(0)}),
                   lapply(1:Nnode(phy),function(i){Ntip(phy)+i}))
