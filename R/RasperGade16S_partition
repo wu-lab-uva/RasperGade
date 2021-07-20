@@ -133,3 +133,30 @@ refine_partition = function(tree,dAIC,group){
   }
   return(list(group=group,partition=current.partition))
 }
+
+#' @export
+#' @rdname rescale_tree_by_partition_and_model
+rescale_tree_by_partition_and_model = 
+  function(tree,group,models,epsilon.as.PE = FALSE,min.value=1e-6){
+    base.rate = total.process.variance(models[[1]])
+    scale.coef = sapply(models,function(x){
+      base.rate/total.process.variance(x)
+    })
+    for(i in 1:length(scale.coef)){
+      tree$edge.length[group[tree$edge[,1]]==i] = 
+        tree$edge.length[group[tree$edge[,1]]==i]/scale.coef[i]
+    }
+    new.epsilon = sapply(1:Ntip(tree),function(j){
+      models[[group[j]]]["epsilon"]/2
+    })
+    new.model = models[[1]]
+    new.model["epsilon"] = min.value
+    if(epsilon.as.PE){
+      for(i in 1:Ntip(tree)){
+        tree$edge.length[tree$edge[,2]==i] =
+          tree$edge.length[tree$edge[,2]==i]+new.epsilon[i]/base.rate
+      }
+      new.epsilon = rep(min.value,Ntip(tree))
+    }
+    return(list(phy=tree,model= new.model,epsilon=unname(new.epsilon)))
+  }
