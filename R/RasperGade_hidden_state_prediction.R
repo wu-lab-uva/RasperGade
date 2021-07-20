@@ -37,3 +37,78 @@ predTraitByPIC = function(phy, trait,rate=1){
   pred$var = pred$var*rate
   return(pred)
 }
+
+#' @export
+#' @rdname predictHiddenStateWithPE
+predictHiddenStateWithPE = function(FMR,query.keys,laplace=FALSE,numApprox=1,
+                                    margin=1e-6,asymptotic=5,numCores=1){
+  cv.error = lapply(query.keys,function(this.key){
+    des.node = FMR$key[[this.key$hash[1]]]
+    if(is.null(des.node)){
+      this.match = which(is.na(FMR$marginal$orientation)&(FMR$marginal$focal == getRoot(FMR$phy)))
+      this.l = this.key$l[2]
+    }else{
+      parent.node = getLatestAncestor(FMR$phy,des.node)
+      this.match = c(which((FMR$marginal$orientation == des.node)&(FMR$marginal$focal == parent.node)),
+                     which((FMR$marginal$focal == des.node)&(FMR$marginal$orientation == parent.node)))
+      this.scale = FMR$phy$edge.length[FMR$phy$edge[,2]==des.node]/
+        sum(this.key$l[1:2])
+      this.key$l = this.key$l*this.scale
+      this.l = this.key$l[1:2]
+    }
+    error.index = do.call(expand.grid, lapply(1:length(this.match), 
+                                              function(i) {
+                                                1:dim(FMR$error[[this.match[i]]]$approximate)[1]
+                                              }))
+    rec = do.call(rbind, lapply(1:dim(error.index)[1], function(i) {
+      this.rec = marginalReconstructionWithPE(x = sapply(1:length(this.match), 
+                                                         function(j) {
+                                                           FMR$error[[this.match[j]]]$approximate$x[error.index[i,j]]
+                                                         }), l = this.l, 
+                                              epsilons = sapply(1:length(this.match), function(j) {
+                                                FMR$error[[this.match[j]]]$approximate$var[error.index[i,j]]
+                                              }), sigma = FMR$params$sigma, lambdas = FMR$params$lambdas, 
+                                              sizes = FMR$params$sizes, margin = margin, asymptotic = asymptotic)
+      this.probs = prod(sapply(1:length(this.match), function(j) {
+        FMR$error[[this.match[j]]]$approximate$probs[error.index[i,j]]
+      }))
+      this.error = this.rec$profile
+      this.error$probs = this.error$probs * this.probs
+      return(this.error)
+    }))
+    rec$probs = rec$probs/sum(rec$probs)
+    rec.moments = compoundNormalMoments(probs = rec$probs, 
+                                        means = rec$x, vars = rec$var)
+    this.hsp = data.frame(node = -1, label = this.key$label, 
+                          x = unname(rec.moments[1]), var = unname(rec.moments[2]), 
+                          stringsAsFactors = FALSE)
+    rec = do.call(rbind, lapply(1, function(i) {
+      this.rec = marginalReconstructionWithPE(x = this.hsp$x,
+                                              l = this.key$l[3], 
+                                              epsilons = this.hsp$var,
+                                              sigma = FMR$params$sigma, lambdas = FMR$params$lambdas, 
+                                              sizes = FMR$params$sizes, margin = margin, asymptotic = asymptotic)
+      this.error = this.rec$profile
+      this.error$probs = this.error$probs
+      return(this.error)
+    }))
+    rec$probs = rec$probs/sum(rec$probs)
+    rec.moments = compoundNormalMoments(probs = rec$probs, 
+                                        means = rec$x, vars = rec$var)
+    this.hsp = data.frame(node = -1, label = this.key$label, 
+                          x = unname(rec.moments[1]), var = unname(rec.moments[2]), 
+                          stringsAsFactors = FALSE)
+    return(list(error = rec, hsp = this.hsp))
+  })
+  cv = do.call(rbind, lapply(cv.error, function(x) {
+    x$hsp
+  }))
+  cv.error = lapply(cv.error, function(x) {
+    x$error
+  })
+  cv$var = cv$var + FMR$params$epsilon/2
+  for (ii in 1:length(cv.error)) {
+    cv.error[[ii]]$var = cv.error[[ii]]$var + FMR$params$epsilon/2
+  }
+  return(list(hsp = cv, error = cv.error))
+}
