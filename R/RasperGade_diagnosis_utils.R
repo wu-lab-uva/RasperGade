@@ -49,8 +49,8 @@ pseudo.Z.score = function(trait,pred,error,epsilon=0,laplace=FALSE){
 #' @description  Extending RasperGade to integer traits
 #' @export
 #' @rdname discretizeResult
-discretizeResult = function(res,error=NULL,epsilon=0,laplace=FALSE){
-  new.res = lapply(1:dim(res)[1],function(i){
+discretizeResult = function(res,error=NULL,epsilon=0,laplace=FALSE,numCores=1){
+  new.res = mclapply(1:dim(res)[1],function(i){
     df = data.frame(node=res$node[i],label=res$label[i],x=round(res$x[i]))
     if(laplace){
       if(is.null(error)){
@@ -74,7 +74,7 @@ discretizeResult = function(res,error=NULL,epsilon=0,laplace=FALSE){
       }
     }
     return(df)
-  })
+  },mc.cores=numCores)
   new.res = do.call(rbind,new.res)
   return(new.res)
 }
