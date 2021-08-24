@@ -78,3 +78,32 @@ discretizeResult = function(res,error=NULL,epsilon=0,laplace=FALSE,numCores=1){
   new.res = do.call(rbind,new.res)
   return(new.res)
 }
+#' @export
+calculate_R2cv = function(trait,pred){
+  trait.variance = mean((trait-mean(trait))^2)
+  return(1-mean((trait - pred)^2)/trait.variance)
+}
+#' @export
+F_beta_score = function(obs,pred,beta=1){
+  tp = sum(obs&pred)
+  fp = sum((!obs)&pred)
+  fn = sum(obs&(!pred))
+  fbeta = ((1+beta^2)*tp)/((1+beta^2)*tp+beta^2*fn+fp)
+  return(fbeta)
+}
+#' @export
+precision_recall = function(obs,pred,as.na=FALSE){
+  tp = sum(obs&pred)
+  fp = sum((!obs)&pred)
+  fn = sum(obs&(!pred))
+  precision=tp/(tp+fp)
+  recall = tp/(tp+fn)
+  if(as.na){
+    if(is.nan(precision)) precision = NA
+    if(is.nan(recall)) recall=NA
+  }else{
+    if(is.nan(precision)) precision = 0
+    if(is.nan(recall)) recall=0
+  }
+  return(c(precision=precision,recall=recall))
+}
