@@ -1,6 +1,6 @@
 Package: RasperGade
 Title: Reconstructing Ancestral State under Pulsed Evolution in R by Gaussian Decomposition
-Version: 0.0.0.9000
+Version: 0.0.0.9500
 Authors@R: 
     person(given = "Yingnan",
            family = "Gao",
@@ -11,8 +11,11 @@ Description: RasperGade accounts for both time-independent variation and pulsed 
 Depends:
         ape,
         bbmle,
-        doParallel,
+        parallel,
         pracma
+Imports:
+        digest,
+        castor
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
