@@ -47,21 +47,45 @@ getRoot = function(phy){
   return(Ntip(phy) + 1)
 }
 
-#' @title  Find the immediate descendants of a node
+#' @title  Find the descendants of a node
 #'
-#' @description  An utility function to find the immediate descendants of a node
+#' @description  Utility functions to find the descendants of a node
 #'
 #' @param phy a phylo-class object from the `ape` package
 #' @param x the index of the focal node
-#' @return The indices of the immediate descendants. If a tip is supplied, `NA`` will be returned.
+#' @return `getNextDescendants` returns the indices of the immediate descendants. If a tip is supplied, `NA`` will be returned.
+#' @return `get_descendant_tips_for_each_node` and `get_descendant_nodes_for_each_node` returns a list of descendants.
+#' @return The list is ordered so that the index matches the tip/node index in the phylo-class object.
 #' @seealso [getRoot][getAncestor][findSisters][getConnected]
 #' @export
-#' @rdname getDescendants
+#' @rdname getNextDescendants
 getNextDescendants = function (phy, x){
   if (x <= Ntip(phy))
     return(NA)
   i <- which(phy$edge[, 1] == x)
   return(phy$edge[i, 2])
+}
+
+#' @export
+#' @rdname getNextDescendants
+get_descendant_tips_for_each_node = function(phy){
+  descendants = c(lapply(1:Ntip(phy),function(i){phy$tip.label[i]}),
+                  lapply(1:Nnode(phy),function(i){return(NA)}))
+  for(node in unique(reorder.phylo(phy,order = "postorder")$edge[,1])){
+    descendants[[node]] = do.call(c,descendants[getNextDescendants(phy,node)])
+  }
+  return(descendants)
+}
+
+#' @export
+#' @rdname getNextDescendants
+get_descendant_nodes_for_each_node = function(phy){
+  descendants = c(lapply(1:Ntip(phy),function(i){numeric(0)}),
+                  lapply(1:Nnode(phy),function(i){Ntip(phy)+i}))
+  for(node in unique(reorder.phylo(phy,order = "postorder")$edge[,1])){
+    descendants[[node]] = do.call(c,descendants[c(node,getNextDescendants(phy,node))])
+  }
+  return(descendants)
 }
 
 #' @title  Find the sister nodes/tips of a node/tip
@@ -112,26 +136,4 @@ findEdges = function(phy,node,ancestor = FALSE){
 getConnected = function(phy,x){
   conn = c(phy$edge[phy$edge[,2]==x,1],phy$edge[phy$edge[,1]==x,2])
   return(conn)
-}
-
-#' @export
-#' @rdname getDescendants
-get_descendant_tips_for_each_node = function(phy){
-  descendants = c(lapply(1:Ntip(phy),function(i){phy$tip.label[i]}),
-                  lapply(1:Nnode(phy),function(i){return(NA)}))
-  for(node in unique(reorder.phylo(phy,order = "postorder")$edge[,1])){
-    descendants[[node]] = do.call(c,descendants[getNextDescendants(phy,node)])
-  }
-  return(descendants)
-}
-
-#' @export
-#' @rdname getDescendants
-get_descendant_nodes_for_each_node = function(phy){
-  descendants = c(lapply(1:Ntip(phy),function(i){numeric(0)}),
-                  lapply(1:Nnode(phy),function(i){Ntip(phy)+i}))
-  for(node in unique(reorder.phylo(phy,order = "postorder")$edge[,1])){
-    descendants[[node]] = do.call(c,descendants[c(node,getNextDescendants(phy,node))])
-  }
-  return(descendants)
 }

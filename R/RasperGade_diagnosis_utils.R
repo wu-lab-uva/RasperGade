@@ -9,6 +9,7 @@ logitSigmoid=function(x,p){
     trans.x = sigmoid(logit.x)
   })
 }
+
 #' @export
 #' @rdname logitSigmoid
 reverse.logitSigmoid=function(x,p){
@@ -78,12 +79,20 @@ discretizeResult = function(res,error=NULL,epsilon=0,laplace=FALSE,numCores=1){
   new.res = do.call(rbind,new.res)
   return(new.res)
 }
+
+#' @title  Calculating coefficient of determination
+#' @description  Calculate the R2 with an expected 1:1 fit
 #' @export
+#' @rdname calculate_R2CV
 calculate_R2cv = function(trait,pred){
   trait.variance = mean((trait-mean(trait))^2)
   return(1-mean((trait - pred)^2)/trait.variance)
 }
+
+#' @title  Calculating recall, precision and F score
+#' @description  Functions to calculate recall, precision, and the F score with variable weight between recall and precision 
 #' @export
+#' @rdname F_beta_score
 F_beta_score = function(obs,pred,beta=1){
   tp = sum(obs&pred)
   fp = sum((!obs)&pred)
@@ -91,7 +100,9 @@ F_beta_score = function(obs,pred,beta=1){
   fbeta = ((1+beta^2)*tp)/((1+beta^2)*tp+beta^2*fn+fp)
   return(fbeta)
 }
+
 #' @export
+#' @rdname F_beta_score
 precision_recall = function(obs,pred,as.na=FALSE){
   tp = sum(obs&pred)
   fp = sum((!obs)&pred)

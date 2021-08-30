@@ -1,7 +1,5 @@
 #' @title  Predict hidden state under the BM model
-#'
 #' @description Predict hidden state under the BM model given a phylogeny, some known states, and the rate of BM
-#'
 #' @param trait named vector of tip trait values; names should match the tip labels; missing values are hidden states
 #' @param phy phylo-class object from `ape` package
 #' @param rate the rate of BM
@@ -38,6 +36,17 @@ predTraitByPIC = function(phy, trait,rate=1){
   return(pred)
 }
 
+#' @title  Predict hidden state under the PE model
+#' @description Predict hidden state under the PE model given a phylogeny, some known states, and the PE model
+#' @param FMR the returned data structure from function `fullMarginalReconstructionWithPE`
+#' @param query.keys the tracking key of query tips
+#' @param laplace logical, if true, Laplace distribution is used for time-independent variation
+#' @param numApprox the number of normal distributions to approximate the Laplace distribution
+#' @param margin the total probability mass that the number of jumps omitted in a compound Poisson process
+#' @param numCores the number of cores to run in parallel
+#' @param asymptotic the threshold of expected number of jumps on a branch beyond which normal distribution is assumed
+#' @return a data frame listing the means and variances of the hidden states
+#' @details to be added
 #' @export
 #' @rdname predictHiddenStateWithPE
 predictHiddenStateWithPE = function(FMR,query.keys,laplace=FALSE,numApprox=1,
