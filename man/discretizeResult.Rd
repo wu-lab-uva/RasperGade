@@ -4,7 +4,7 @@
 \alias{discretizeResult}
 \title{Discretize result}
 \usage{
-discretizeResult(res, error = NULL, epsilon = 0, laplace = FALSE)
+discretizeResult(res, error = NULL, epsilon = 0, laplace = FALSE, numCores = 1)
 }
 \description{
 Extending RasperGade to integer traits

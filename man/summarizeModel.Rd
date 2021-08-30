@@ -5,7 +5,13 @@
 \alias{normalize.AIC}
 \title{Summarize fitted model}
 \usage{
-summarize.model.parameter(params, time = 2000, scale = 1)
+summarize.model.parameter(
+  params,
+  time = 2000,
+  scale = 1,
+  jitter = 0,
+  min.value = 0
+)
 
 normalize.AIC(AIC, scale = 1, sample.size = 6667)
 }
