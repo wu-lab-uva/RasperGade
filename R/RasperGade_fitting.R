@@ -1,5 +1,5 @@
 #' @import bbmle
-#' @import doParallel
+#' @import parallel
 #' @title  Find only tip-pair contrasts in a tree
 #' @description  Find only tip-pair contrasts in a tree for a reconstruction-free analysis
 #' @export
