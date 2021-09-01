@@ -51,20 +51,33 @@ predTraitByPIC = function(phy, trait,rate=1){
 #' @rdname predictHiddenStateWithPE
 predictHiddenStateWithPE = function(FMR,query.keys,laplace=FALSE,numApprox=1,
                                     margin=1e-6,asymptotic=5,numCores=1){
-  cv.error = lapply(query.keys,function(this.key){
-    des.node = FMR$key[[this.key$hash[1]]]
-    if(is.null(des.node)){
-      this.match = which(is.na(FMR$marginal$orientation)&(FMR$marginal$focal == getRoot(FMR$phy)))
-      this.l = this.key$l[2]
-    }else{
-      parent.node = getLatestAncestor(FMR$phy,des.node)
-      this.match = c(which((FMR$marginal$orientation == des.node)&(FMR$marginal$focal == parent.node)),
-                     which((FMR$marginal$focal == des.node)&(FMR$marginal$orientation == parent.node)))
-      this.scale = FMR$phy$edge.length[FMR$phy$edge[,2]==des.node]/
-        sum(this.key$l[1:2])
-      this.key$l = this.key$l*this.scale
-      this.l = this.key$l[1:2]
+  cv.error = mclapply(query.keys,function(this.key){
+    key.check = sapply(this.key$hash,function(x){is.null(FMR$key[[x]])})
+    if(all(key.check)){
+      warning("Two-side reference mismatch observed, returning NULL.",immediate. = TRUE)
+      return(NULL)
     }
+    des.nodes = lapply(this.key$hash,function(x){FMR$key[[x]]})
+    if(any(key.check)){
+      warning("One-side reference mismatch observed, restoring from the other match.",immediate. = TRUE)
+      des.nodes[[which(key.check)]] = rev(des.nodes[[which(!key.check)]])
+    }
+    this.match = sapply(des.nodes,function(des.node){
+      mm = which((FMR$marginal$orientation == des.node[2])&
+                   (FMR$marginal$focal == des.node[1]))
+      if(length(mm)<1){
+        mm = which((FMR$marginal$orientation == getRoot(FMR$phy))&
+                     (FMR$marginal$focal == des.node[1]))
+      }
+      return(mm)
+    })
+    parent.node = intersect(des.nodes[[1]],
+                            sapply(des.nodes[[2]],getAncestor,phy=FMR$phy))
+    if(length(parent.node)<1) parent.node = getAncestor(phy = FMR$phy,des.nodes[[1]][1])
+    this.scale = FMR$scale[parent.node]
+    this.epsilon = FMR$epsilon.branch[parent.node]
+    this.key$l = this.key$l/this.scale+c(0,0,this.epsilon)
+    this.l = this.key$l[1:2]
     error.index = do.call(expand.grid, lapply(1:length(this.match), 
                                               function(i) {
                                                 1:dim(FMR$error[[this.match[i]]]$approximate)[1]
@@ -108,7 +121,7 @@ predictHiddenStateWithPE = function(FMR,query.keys,laplace=FALSE,numApprox=1,
                           x = unname(rec.moments[1]), var = unname(rec.moments[2]), 
                           stringsAsFactors = FALSE)
     return(list(error = rec, hsp = this.hsp))
-  })
+  },mc.cores = numCores)
   cv = do.call(rbind, lapply(cv.error, function(x) {
     x$hsp
   }))
@@ -121,3 +134,4 @@ predictHiddenStateWithPE = function(FMR,query.keys,laplace=FALSE,numApprox=1,
   }
   return(list(hsp = cv, error = cv.error))
 }
+
