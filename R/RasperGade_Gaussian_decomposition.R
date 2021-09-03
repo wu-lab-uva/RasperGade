@@ -20,6 +20,7 @@ mix_errors_by_weight = function(errors,weights){
 #'
 #' @export
 #' @rdname calculate_error_mean
-calculate_error_mean = function(error){
-  sum(error$x*error$probs)
+calculate_error_mean_and_var = function(error){
+  this.moments = unname(compoundNormalMoments(probs = error$probs,means = error$x,vars = error$var))
+  return(this.moments[1:2])
 }
