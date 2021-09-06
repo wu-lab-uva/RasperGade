@@ -1,4 +1,3 @@
-#' @importFrom castor asr_independent_contrasts
 #' @title  Predict hidden state under the BM model
 #' @description Predict hidden state under the BM model given a phylogeny, some known states, and the rate of BM
 #' @param trait named vector of tip trait values; names should match the tip labels; missing values (NA or not present) are hidden states
@@ -15,7 +14,7 @@ predict_hidden_state_by_pic = function(phy, trait){
   res = lapply(1:length(query.tip),function(j){
     this.tree = drop.tip(phy = phy,tip = query.tip[-j])
     this.tree = reroot_tree_at_tip(this.tree,query.tip[j])
-    this.pred = asr_independent_contrasts(tree = this.tree,tip_states = trait[this.tree$tip.label],
+    this.pred = castor::asr_independent_contrasts(tree = this.tree,tip_states = trait[this.tree$tip.label],
                                          weighted = TRUE,include_CI = TRUE)
     return(data.frame(node=-1,label=query.tip[j],x=this.asr$ancestral_states[1],
                       var=this.asr$standard_errors[1]^2,stringsAsFactors = FALSE))
