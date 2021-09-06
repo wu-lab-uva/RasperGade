@@ -159,7 +159,7 @@ reroot_tree_at_tip = function(phy,tip){
   pseudo.tree$tip.label = paste0("Pseudo_",pseudo.tree$tip.label)
   combined.tree = bind.tree(x = phy,y = pseudo.tree,where = tip.idx,position = 0)
   combined.rt.tree = root.phylo(combined.tree,
-                                node = get_mrca_of_set(tree = combined.tree,
+                                node = castor::get_mrca_of_set(tree = combined.tree,
                                                        descendants = pseudo.tree$tip.label))
   rt.tree = drop.tip(combined.rt.tree,
                      tip = pseudo.tree$tip.label,collapse.singles = FALSE,trim.internal = FALSE)
