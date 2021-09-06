@@ -66,7 +66,7 @@ LOO_CV_with_PE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,margin=
     }
   }
   #
-  return(list(cv=cv,error=cv.error))
+  return(list(summary=cv,error=cv.error))
 }
 
 #' @title  Leave-one-out cross-validation under BM model
