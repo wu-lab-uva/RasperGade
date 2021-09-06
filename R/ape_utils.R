@@ -137,3 +137,31 @@ getConnected = function(phy,x){
   conn = c(phy$edge[phy$edge[,2]==x,1],phy$edge[phy$edge[,1]==x,2])
   return(conn)
 }
+
+#' @title  Root the phylogeny at a tip
+#'
+#' @description  An utility function to root the tree at a tip for hidden state prediction through ancestral reconstruction
+#'
+#' @param phy a phylo-class object from the `ape` package
+#' @param tip the focal tip, either a character string matching the tip label or a number matching its index
+#' @return A phylo-class object containing the re-rooted tree
+#' @export
+#' @rdname reroot_tree_at_tip
+reroot_tree_at_tip = function(phy,tip){
+  if(is.character(tip)){
+    tip.idx = which(phy$tip.label==tip)
+  }else{
+    tip.idx = tip
+  }
+  phy = makeNodeLabel(phy)
+  pseudo.tree = rtree(2,br = 1)
+  pseudo.tree  = makeNodeLabel(phy = pseudo.tree,prefix = "PseudoNode")
+  pseudo.tree$tip.label = paste0("Pseudo_",pseudo.tree$tip.label)
+  combined.tree = bind.tree(x = phy,y = pseudo.tree,where = tip.idx,position = 0)
+  combined.rt.tree = root.phylo(combined.tree,
+                                node = get_mrca_of_set(tree = combined.tree,
+                                                       descendants = pseudo.tree$tip.label))
+  rt.tree = drop.tip(combined.rt.tree,
+                     tip = pseudo.tree$tip.label,collapse.singles = FALSE,trim.internal = FALSE)
+  return(rt.tree)
+}

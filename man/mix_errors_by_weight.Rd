@@ -6,6 +6,14 @@
 \usage{
 mix_errors_by_weight(errors, weights)
 }
+\arguments{
+\item{errors}{a list of error distributions (a list of data frames)}
+
+\item{weights}{a numerical vector of probability weights}
+}
+\value{
+The merged error distribution (a data frame)
+}
 \description{
-Mix error distributions by weights
+Mix error distributions by their weights
 }

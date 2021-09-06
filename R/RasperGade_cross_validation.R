@@ -9,10 +9,11 @@
 #' @param margin the total probability mass that the number of jumps omitted in a compound Poisson process
 #' @param numCores the number of cores to run in parallel
 #' @param asymptotic the threshold of expected number of jumps on a branch beyond which normal distribution is assumed
-#' @return a data frame listing the means and variances of the hidden states, and a list that describes the detailed error distribution of them
+#' @return `$summary` is a data frame listing the means and variances of the hidden states
+#' @return `$error` is a list of error distributions where each element is a data frame
 #' @export
-#' @rdname crossValidationWithPE
-crossValidationWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,margin=1e-6,numCores=1,asymptotic=5){
+#' @rdname LOO_CV_with_PE
+LOO_CV_with_PE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,margin=1e-6,numCores=1,asymptotic=5){
   cat("Conducting leave-one-out cross validation...\n")
   # the internal function to predict hidden states for each tip
   cv.func = function(tip,FMR){
@@ -66,4 +67,22 @@ crossValidationWithPE = function(FMR,add.epsilon=TRUE,laplace=FALSE,numApprox=1,
   }
   #
   return(list(cv=cv,error=cv.error))
+}
+
+#' @title  Leave-one-out cross-validation under BM model
+#'
+#' @description Predict hidden states under the BM model in a leave-one-out cross-validation
+#'
+#' @param trait named vector of tip trait values; names should match the tip labels; missing values are hidden states
+#' @param phy phylo-class object from `ape` package
+#' @param numCores number of threads to run in parallel
+#' @return `$summary` is a data frame listing the means and variances of the hidden states
+#' @return `$error` is a list of error distributions where each element is a data frame
+#' @export
+#' @rdname LOO_CV_with_BM
+LOO_CV_with_BM = function(phy,trait){
+  cat("Conducting leave-one-out cross validation...\n")
+  cv = lapply(1:Ntip(phy),function(i){predict_hidden_state_by_pic(phy=phy,trait = trait[phy$tip.label[-i]])})
+  return(list(summary=do.call(rbind,lapply(cv,function(x){x$summary})),
+              error=do.call(c,lapply(cv,function(x){x$error}))))
 }

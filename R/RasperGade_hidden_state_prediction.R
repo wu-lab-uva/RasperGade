@@ -1,39 +1,28 @@
 #' @title  Predict hidden state under the BM model
 #' @description Predict hidden state under the BM model given a phylogeny, some known states, and the rate of BM
-#' @param trait named vector of tip trait values; names should match the tip labels; missing values are hidden states
+#' @param trait named vector of tip trait values; names should match the tip labels; missing values (NA or not present) are hidden states
 #' @param phy phylo-class object from `ape` package
-#' @param rate the rate of BM
-#' @return a data frame listing the means and variances of the hidden states
-#' @details this function is modified from the function in `picante` package
+#' @return a list of two elements:
+#' @return `$summary` is a data frame listing the means and variances of the hidden states
+#' @return `$error` is a list of error distributions where each element is a data frame
 #' @export
-#' @rdname predTraitByPIC
-predTraitByPIC = function(phy, trait,rate=1){
-  # get names of known and unknown species
-  refSpecies = names(trait)
-  tarSpecies = phy$tip.label[is.na(match(phy$tip.label,refSpecies))]
-  #
-  pred = as.data.frame(matrix(nrow=length(tarSpecies), ncol=4, dimnames=list(tarSpecies, c("node","label","x","var"))))
-  #
-  for (i in tarSpecies) {
-    # keep only the focal target species and the references
-    this.tree = drop.tip(phy = phy,tip = tarSpecies[tarSpecies!=i])
-    # reroot the tree at the focal target species
-    this.tree = root(this.tree, i, resolve.root=FALSE)
-    # get branch length leading to the focal species in the rerooted tree for standard errors
-    focal.bl = this.tree$edge.length[which(this.tree$edge[,2]==which(this.tree$tip.label==i))]
-    # trim the focal species
-    this.tree = drop.tip(this.tree, i)
-    # get the adjusted branch lengths for the root estimate
-    pic.tree = pic(x = trait,phy = this.tree,rescaled.tree = TRUE)$rescaled.tree
-    root.bl = pic.tree$edge.length[pic.tree$edge[,1]==getRoot(pic.tree)]
-    # use PIC (BM-ML analytic solution) to estimate trait value and error
-    est = ace(x = trait[this.tree$tip.label], phy = this.tree, method="pic",type = "continuous")$ace[1]
-    this.var = 1/sum(1/root.bl) + focal.bl
-    pred[i,] <- data.frame(node=which(phy$tip.label==i),label=i,x=unname(est), var=unname(this.var))
-  }
-  # adjust for rate of BM
-  pred$var = pred$var*rate
-  return(pred)
+#' @rdname predict_hidden_state_by_pic
+predict_hidden_state_by_pic = function(phy, trait){
+  # get names of unknown species
+  query.tip = setdiff(phy$tip.label,names(trait[!is.na(trait)]))
+  # predict hidden states via rerooting
+  res = lapply(1:length(query.tip),function(j){
+    this.tree = drop.tip(phy = phy,tip = query.tip[-j])
+    this.tree = reroot_tree_at_tip(this.tree,query.tip[j])
+    this.pred = asr_independent_contrasts(tree = this.tree,tip_states = trait[this.tree$tip.label],
+                                         weighted = TRUE,include_CI = TRUE)
+    return(data.frame(node=-1,label=query.tip[j],x=this.asr$ancestral_states[1],
+                      var=this.asr$standard_errors[1]^2,stringsAsFactors = FALSE))
+  })
+  res.error = lapply(res,function(x){
+    data.frame(x=x$x,var=x$var,scale=1,prior=1,probs=1)
+  })
+  return(list(summary=do.call(rbind,res),error = res.error))
 }
 
 #' @title  Predict hidden state under the PE model
@@ -45,8 +34,9 @@ predTraitByPIC = function(phy, trait,rate=1){
 #' @param margin the total probability mass that the number of jumps omitted in a compound Poisson process
 #' @param numCores the number of cores to run in parallel
 #' @param asymptotic the threshold of expected number of jumps on a branch beyond which normal distribution is assumed
-#' @return a data frame listing the means and variances of the hidden states
-#' @details to be added
+#' @return a list of two elements:
+#' @return `$summary` is a data frame listing the means and variances of the hidden states
+#' @return `$error` is a list of error distributions#' @details to be added
 #' @export
 #' @rdname predictHiddenStateWithPE
 predictHiddenStateWithPE = function(FMR,query.keys,laplace=FALSE,numApprox=1,

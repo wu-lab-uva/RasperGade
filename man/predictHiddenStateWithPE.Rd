@@ -30,11 +30,12 @@ predictHiddenStateWithPE(
 \item{numCores}{the number of cores to run in parallel}
 }
 \value{
-a data frame listing the means and variances of the hidden states
+a list of two elements:
+
+\verb{$summary} is a data frame listing the means and variances of the hidden states
+
+\verb{$error} is a list of error distributions#' @details to be added
 }
 \description{
 Predict hidden state under the PE model given a phylogeny, some known states, and the PE model
-}
-\details{
-to be added
 }

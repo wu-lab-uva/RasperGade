@@ -1,7 +1,10 @@
 #' @title  Mix error distributions
 #'
-#' @description Mix error distributions by weights
+#' @description Mix error distributions by their weights
 #'
+#' @param errors a list of error distributions (a list of data frames)
+#' @param weights a numerical vector of probability weights
+#' @return The merged error distribution (a data frame)
 #' @export
 #' @rdname mix_errors_by_weight
 mix_errors_by_weight = function(errors,weights){
@@ -14,12 +17,14 @@ mix_errors_by_weight = function(errors,weights){
   return(new.error)
 }
 
-#' @title  Calculate error mean value
+#' @title Calculate the mean and variance of an error distribution
 #'
-#' @description Calculate error mean value
+#' @description The function [calculate_error_mean_and_var] calculates the mean and variance of an error distribution
 #'
+#' @param error an error distributions (a data frame)
+#' @return A named vector of two containing the mean and variance of the error distribution
 #' @export
-#' @rdname calculate_error_mean
+#' @rdname calculate_error_mean_and_var
 calculate_error_mean_and_var = function(error){
   this.moments = unname(compoundNormalMoments(probs = error$probs,means = error$x,vars = error$var))
   return(this.moments[1:2])
