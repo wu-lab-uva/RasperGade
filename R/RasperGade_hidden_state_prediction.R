@@ -16,8 +16,8 @@ predict_hidden_state_by_pic = function(phy, trait){
     this.tree = reroot_tree_at_tip(this.tree,query.tip[j])
     this.pred = castor::asr_independent_contrasts(tree = this.tree,tip_states = trait[this.tree$tip.label],
                                          weighted = TRUE,include_CI = TRUE)
-    return(data.frame(node=-1,label=query.tip[j],x=this.asr$ancestral_states[1],
-                      var=this.asr$standard_errors[1]^2,stringsAsFactors = FALSE))
+    return(data.frame(node=-1,label=query.tip[j],x=this.pred$ancestral_states[1],
+                      var=this.pred$standard_errors[1]^2,stringsAsFactors = FALSE))
   })
   res.error = lapply(res,function(x){
     data.frame(x=x$x,var=x$var,scale=1,prior=1,probs=1)
