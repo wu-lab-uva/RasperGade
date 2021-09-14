@@ -31,7 +31,7 @@ calculateBinomRSS = function(p,obs,group=NULL,bin=20,equal.bin=TRUE,detail=FALSE
     rss = (2*logitSigmoid(x = obs.count/total.count,p = exp.z)-1)^2
     return(data.frame(RSS=rss,emp=obs.count/total.count,exp=exp.z,count=total.count))
   }))
-  this.rss = bin*mean(bin.rss,na$RSS.rm = TRUE)
+  this.rss = bin*mean(bin.rss$RSS,na.rm = TRUE)
   if(detail) return(list(RSS=this.rss,detail=bin.rss))
   return(this.rss)
 }

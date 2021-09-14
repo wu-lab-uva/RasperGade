@@ -4,7 +4,15 @@
 \alias{calculateBinomRSS}
 \title{Calculate RSS}
 \usage{
-calculateBinomRSS(p, obs, group = NULL, bin = 20, ...)
+calculateBinomRSS(
+  p,
+  obs,
+  group = NULL,
+  bin = 20,
+  equal.bin = TRUE,
+  detail = FALSE,
+  ...
+)
 }
 \description{
 Calculate RSS
