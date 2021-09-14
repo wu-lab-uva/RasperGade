@@ -7,18 +7,18 @@ calculateBinomRSS = function(p,obs,group=NULL,bin=20,equal.bin=TRUE,detail=FALSE
     mid.bin = seq(0,1,length.out=bin+1)
     mid.bin = (mid.bin[-1]+mid.bin[-(bin+1)])/2
     all.bins = lapply(mid.bin,function(z){
-      which((p<=(z+mid.bin[1]))&(p>(z-mid.bin[1])))
+      which((p<=(z+mid.bin[1]))&(p>=(z-mid.bin[1])))
     })
   }else{
     if(equal.bin){
       group.idx = sort(group,decreasing = FALSE,index.return=TRUE)$ix
       bin.idx = round(seq(from=1,to = length(group)+1,length.out = bin+1))
-      all.bins = lappply(1:bin,function(z){group.idx[bin.idx[z]:(bin.idx[z+1]-1)]})
+      all.bins = lapply(1:bin,function(z){group.idx[bin.idx[z]:(bin.idx[z+1]-1)]})
     }else{
-      mid.bin = seq(min(group[is.finite(group)]),max(group[is.finite(group)])+1e-6,length.out=bin+1)
+      mid.bin = seq(min(group[is.finite(group)]),max(group[is.finite(group)]),length.out=bin+1)
       mid.bin = (mid.bin[-1]+mid.bin[-(bin+1)])/2
       all.bins = lapply(mid.bin,function(z){
-        which((group<(z+mid.bin[1]))&(group>=(z-mid.bin[1])))
+        which((group<=(z+(mid.bin[2]-mid.bin[1])/2))&(group>=(z-(mid.bin[2]-mid.bin[1])/2)))
       })
     }
   }
