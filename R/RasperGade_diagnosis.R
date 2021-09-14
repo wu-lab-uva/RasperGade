@@ -2,34 +2,37 @@
 
 #' @title  Calculate RSS
 #' @export
-calculateBinomRSS = function(p,obs,group=NULL,bin=20,...){
+calculateBinomRSS = function(p,obs,group=NULL,bin=20,equal.bin=TRUE,detail=FALSE,...){
   if(is.null(group)){
-    bin.rss = sapply(seq(0.005,0.995,0.01),function(z){
-      idx = (p<=(z+0.005))&(p>(z-0.005))
-      total.count = sum(idx)
-      exp.z = z
-      if(total.count>0) exp.z = mean(p[idx])
-      obs.count = 0
-      if(total.count>0) obs.count = sum(obs[idx])
-      rss = (2*logitSigmoid(x = obs.count/total.count,p = exp.z)-1)^2
-      return(rss)
+    mid.bin = seq(0,1,length.out=bin+1)
+    mid.bin = (mid.bin[-1]+mid.bin[-(bin+1)])/2
+    all.bins = lapply(mid.bin,function(z){
+      which((p<=(z+mid.bin[1]))&(p>(z-mid.bin[1])))
     })
-    this.rss = 100*mean(bin.rss,na.rm = TRUE)
   }else{
-    group.idx = sort(group,decreasing = FALSE,index.return=TRUE)$ix
-    bin.idx = round(seq(from=1,to = length(group)+1,length.out = bin+1))
-    bin.rss = sapply(1:bin,function(z){
-                                idx = group.idx[bin.idx[z]:(bin.idx[z+1]-1)]
-                                total.count = length(idx)
-                                exp.z = mean(p)
-                                if(total.count>0) exp.z = mean(p[idx])
-                                obs.count = 0
-                                if(total.count>0) obs.count = sum(obs[idx])
-                                rss = (2*logitSigmoid(x = obs.count/total.count,p = exp.z)-1)^2
-                                return(rss)
-                              })
-    this.rss = bin*mean(bin.rss,na.rm = TRUE)
+    if(equal.bin){
+      group.idx = sort(group,decreasing = FALSE,index.return=TRUE)$ix
+      bin.idx = round(seq(from=1,to = length(group)+1,length.out = bin+1))
+      all.bins = lappply(1:bin,function(z){group.idx[bin.idx[z]:(bin.idx[z+1]-1)]})
+    }else{
+      mid.bin = seq(min(group[is.finite(group)]),max(group[is.finite(group)])+1e-6,length.out=bin+1)
+      mid.bin = (mid.bin[-1]+mid.bin[-(bin+1)])/2
+      all.bins = lapply(mid.bin,function(z){
+        which((group<(z+mid.bin[1]))&(group>=(z-mid.bin[1])))
+      })
+    }
   }
+  bin.rss = do.call(rbind,lapply(1:bin,function(z){
+    idx = all.bins[[z]]
+    total.count = length(idx)
+    if(total.count<=0) return(data.frame(RSS=NA,emp=NA,exp=NA,count=total.count))
+    exp.z = mean(p[idx])
+    obs.count = sum(obs[idx])
+    rss = (2*logitSigmoid(x = obs.count/total.count,p = exp.z)-1)^2
+    return(data.frame(RSS=rss,emp=obs.count/total.count,exp=exp.z,count=total.count))
+  }))
+  this.rss = bin*mean(bin.rss,na$RSS.rm = TRUE)
+  if(detail) return(list(RSS=this.rss,detail=bin.rss))
   return(this.rss)
 }
 
@@ -43,75 +46,6 @@ calculateHeteroscedasticity = function(x,y,bin=100,n=1000){
   })
   h = fligner.test(x = vars)
   return(c(h=h$statistic,p.value=h$p.value))
-}
-
-#' @title  Calculate tolerance-based inclusion/exclusion
-#' @export
-calculateExclusion = function(pred,error,epsilon=0,tolerance,alpha=0.05,laplace=FALSE,discrete=FALSE){
-  if(discrete){
-    pred = round(pred)
-    tolerance = ceiling(tolerance)+0.5
-  }
-  if(laplace){
-    if(is.list(error)){
-      prob.within.range = sapply(1:length(pred),function(i){
-        pMixNormalLaplace(q = pred[i]+tolerance,mean = error[[i]]$x,sd = sqrt(error[[i]]$var),
-                          laplace.var = epsilon/2,probs = error[[i]]$probs)
-      }) -
-        sapply(1:length(pred),function(i){
-          pMixNormalLaplace(q = pred[i]-tolerance,mean = error[[i]]$x,sd = sqrt(error[[i]]$var),
-                            laplace.var = epsilon/2,probs = error[[i]]$probs)
-        })
-    }else{
-      prob.within.range = sapply(error,function(x){pconv.norm.laplace(q = tolerance,sigma = x,epsilon = epsilon/2)})-
-        sapply(error,function(x){pconv.norm.laplace(q = -tolerance,sigma = x,epsilon = epsilon/2)})
-    }
-  }else{
-    if(is.list(error)){
-      prob.within.range = sapply(1:length(pred),function(i){
-        pMixNormal(q = pred[i]+tolerance,mean = error[[i]]$x,sd = sqrt(error[[i]]$var+epsilon/2),probs = error[[i]]$probs)
-      }) -
-        sapply(1:length(pred),function(i){
-          pMixNormal(q = pred[i]-tolerance,mean = error[[i]]$x,sd = sqrt(error[[i]]$var+epsilon/2),probs = error[[i]]$probs)
-        })
-    }else{
-      prob.within.range = pnorm(q = tolerance,mean = 0,sd = sqrt(error+epsilon/2))-
-        pnorm(q = -tolerance,mean = 0,sd = sqrt(error+epsilon/2))
-    }
-  }
-  return(list(p=prob.within.range, decision=prob.within.range < (1-alpha)))
-}
-
-#' @title  Check if exclusion/inclusion are correct
-#' @export
-checkExclusion = function(obs,pred,tolerance,discrete=FALSE){
-  if(discrete){
-    pred = round(pred)
-    tolerance = ceiling(tolerance)
-  }
-  return(abs(obs-pred) > tolerance)
-}
-
-#' @title  Calcualte the error rate
-#' @export
-calculateExclusionErrorRate = function(obs,pred,error,epsilon=0,tolerance,alpha=0.05,laplace=FALSE,discrete=FALSE){
-  observed.exclusion = checkExclusion(obs,pred,tolerance,discrete)
-  predicted.exclusion = calculateExclusion(pred,error,epsilon,tolerance,alpha,laplace,discrete)
-  predicted.p = predicted.exclusion$p
-  predicted.exclusion = predicted.exclusion$decision
-  errors = c(true.exclusion=sum(observed.exclusion&predicted.exclusion),
-             false.exclusion=sum((!observed.exclusion)&predicted.exclusion),
-             true.inclusion=sum((!observed.exclusion)&(!predicted.exclusion)),
-             false.inclusion=sum(observed.exclusion&(!predicted.exclusion)))
-  expected.errors = c(true.exclusion=sum(1-predicted.p[predicted.exclusion]),
-                      false.exclusion=sum(predicted.p[predicted.exclusion]),
-                      true.inclusion=sum(predicted.p[!predicted.exclusion]),
-                      false.inclusion=sum(1-predicted.p[!predicted.exclusion]))
-  rates=c(FP=sum((!observed.exclusion)&predicted.exclusion)/sum(!observed.exclusion),
-          FN=sum(observed.exclusion&(!predicted.exclusion))/sum(observed.exclusion),
-          FDR=sum((!observed.exclusion)&predicted.exclusion)/sum(predicted.exclusion),
-          FRR=sum(observed.exclusion&(!predicted.exclusion))/sum(!predicted.exclusion))
-  return(list(obs=observed.exclusion,pred=predicted.exclusion,error=errors,expect=expected.errors,rate=rates))
 }
 
 #' @title  Analyze quality of uncertainty in ancestral or hidden state prediction
