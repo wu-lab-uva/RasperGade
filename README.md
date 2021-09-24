@@ -58,3 +58,58 @@ Once `RasperGade` is installed, the location of the demo files can also be acces
 demo.tree.file = system.file("extdata/Demo/demo.tree",package = "RasperGade",mustWork = TRUE)
 demo.trait.file = system.file("extdata/Demo/demo.trait.txt",package = "RasperGade",mustWork = TRUE)
 ```
+To run a typical leave-one-out cross-validation analysis
+```
+library(RasperGade)
+
+# read the demo tree and trait values
+tree = read.tree(demo.tree.file)
+trait = read.table(demo.trait.file,sep = "\t",stringsAsFactors = FALSE)[,2]
+names(trait) = read.table(demo.trait.file,sep = "\t",stringsAsFactors = FALSE)[,1]
+
+# fit the pulsed evolution model
+pe.model = fitPE.phy(phy = tree,x = trait[tree$tip.label],laplace = FALSE)
+print(pe.model$params)
+##   lambda      size     sigma   epsilon 
+## 1.172651 58.925763  6.760760  2.166998 
+
+# conducting leave-one-out cross-validation under different models
+bm.cv = LOO_CV_with_BM(tree,trait)
+pe.fmr = fullMarginalReconstructionWithPE(phy = tree,x = trait[tree$tip.label],params = pe.model$params,laplace = FALSE)
+pe.cv = LOO_CV_with_PE(FMR = pe.fmr)
+```
+To evaluate the performance of CV
+```
+# get the residual errors
+bm.error = trait[tree$tip.label] - bm.cv$summary$x
+pe.error = trait[tree$tip.label] - pe.cv$summary$x
+
+# compare the error and bias
+## bias
+print(c(BM=mean(bm.error),PE=mean(pe.error)))
+###         BM          PE 
+### 0.01810704 -0.08808421 
+
+## error
+print(c(BM=mean(abs(bm.error)),PE=mean(abs(pe.error))))
+###       BM       PE 
+### 3.258241 3.156028 
+
+# get the residual Z-scores
+bm.pZ = pseudo.Z.score(trait=trait[tree$tip.label],pred=bm.cv$summary$x,error=bm.cv$error)
+bm.pZ$se = sqrt(bm.cv$summary$var)
+pe.pZ = pseudo.Z.score(trait=trait[tree$tip.label],pred=pe.cv$summary$x,error=pe.cv$error)
+pe.pZ$se = sqrt(pe.cv$summary$var)
+
+# calculate diagnostic statistics
+diag.stats = lapply(list(BM=bm.pZ,PE=pe.pZ),function(x){
+  this.test = ks.test(x$q,pnorm)
+  this.D = this.test$statistic
+  this.H = calculateHeteroscedasticity(x = x$q,y = x$se,bin = 20)[1]
+  this.RSS = calculateBinomRSS(p = rep(0.95,dim(x)[1]),
+                               obs = sapply(x$p,function(pp){
+                                 min(pp,1-pp)>=0.025}),group = log(x$se),bin = 10,equal.bin = FALSE)
+  data.frame(D = unname(this.D),H = unname(this.H),RSS = unname(this.RSS))
+})
+print(diag.stats)
+```
