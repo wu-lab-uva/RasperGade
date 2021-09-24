@@ -47,7 +47,9 @@ Extant trait values should be in a named numeric vector, and the names should co
 Tips should have unique labels, and if nodes have labels, they should be unique.
 
 ## Demo
-A small example is provided under the folder `Demo`
-
-## Reproduction of results in the preprint
-To reproduce the results in the preprint, follow the instrucitons in `Preprint2021/Instruction.txt`
+A small example is provided under the folder `inst/extdata/Demo`
+Once `RasperGade` is installed, the location of the example can also be accessed by the following command in R
+```
+demo.tree.file = system.file("extdata/Demo/demo.tree",package = "RasperGade",mustWork = TRUE)
+demo.trait.file = system.file("extdata/Demo/demo.trait.txt",package = "RasperGade",mustWork = TRUE)
+```
