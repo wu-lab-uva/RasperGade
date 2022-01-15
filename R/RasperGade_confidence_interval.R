@@ -5,6 +5,9 @@
 #' @param error a data frame listing the mean, variance and weight of normal distributions
 #' @param alpha the desired confidence level;default to 0.05
 #' @param tol the precision of calculated CI that is passed to `uniroot` with the same default
+#' @details `calculate_CI_from_error_distribution` calls `uniroot` function to find the CI at the desired confidence level.
+#' @details For a mixture of normal distribution, the quantile at cumulative probability p Q_p will always be within the interval
+#' @details [min(Q_p_i),max(Q_p_i)] where Q_p_i stands for the quantiles at cumulative probability p for each of the normal component.
 #' @export
 #' @rdname calculate_CI
 calculate_CI_from_error_distribution = function(error,alpha=0.05,tol=.Machine$double.eps^0.25){
