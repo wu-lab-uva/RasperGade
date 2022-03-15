@@ -8,9 +8,9 @@ It has 3 major functions:
 
 3. evaluating the quality of predicted ancestral and hidden states
 
-Detailed algorithm and analyses are described in the preprint: `Modeling pulsed evolution and time-independent variation improves the confidence level of ancestral and hidden state predictions in continuous traits`
+Detailed algorithm and analyses are described in
 
-doi: https://doi.org/10.1101/2021.03.29.437517
+Yingnan Gao, Martin Wu, Modeling Pulsed Evolution and Time-Independent Variation Improves the Confidence Level of Ancestral and Hidden State Predictions, Systematic Biology, 2022;, syac016, https://doi.org/10.1093/sysbio/syac016
 
 ## System requirements
 `RasperGade` are built on `R 3.6.3`. It requires the following R packages and their dependencies for fitting the pulsed evolution model and ancestral state reconstruction: 
